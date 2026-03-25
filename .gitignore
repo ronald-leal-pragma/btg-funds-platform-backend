@@ -1,0 +1,44 @@
+# Java
+/target/
+*.class
+*.war
+*.ear
+
+# IDEs
+/.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Maven
+/logs/
+/.mvn/
+
+# Test reports
+/target/surefire-reports/
+/target/jacoco.exec
+
+# Otros temporales
+*.swp
+*.swo
+*~
+
+# Node/npm (por si hay frontend en el repo)
+node_modules/
+
+# Configuración personal
+*.env
+.env.*
+
+# Cobertura
+/coverage/
+
+# Excluir archivos de despliegue temporales
+lambda-stack.yaml

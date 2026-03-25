@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: btg-funds-platform-backend
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin}
+
+server:
+  port: 8081
+  shutdown: graceful
+  life-cycle:
+    timeout: 20s
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.btg.funds: DEBUG
