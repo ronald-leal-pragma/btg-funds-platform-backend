@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GetClientUseCase {
+public class GetClientUseCase implements com.btg.funds.application.port.in.GetClientPort {
 
     private static final String CLIENT_ID = "1";
 

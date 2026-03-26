@@ -16,7 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GetFundsUseCase {
+public class GetFundsUseCase implements com.btg.funds.application.port.in.GetFundsPort {
 
     private static final String CLIENT_ID = "1";
 

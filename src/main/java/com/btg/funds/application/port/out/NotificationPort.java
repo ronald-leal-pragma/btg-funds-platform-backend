@@ -1,4 +1,4 @@
-package com.btg.funds.application.port;
+package com.btg.funds.application.port.out;
 
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.domain.model.Fund;

@@ -19,7 +19,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CancelFundUseCase {
+public class CancelFundUseCase implements com.btg.funds.application.port.in.CancelFundPort {
 
     private static final String CLIENT_ID = "1";
 

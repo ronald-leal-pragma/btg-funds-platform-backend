@@ -1,6 +1,7 @@
 package com.btg.funds.application.usecase;
 
-import com.btg.funds.application.port.NotificationPort;
+import com.btg.funds.application.port.out.NotificationPort;
+import com.btg.funds.application.port.in.SubscribeFundPort;
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.domain.model.Fund;
 import com.btg.funds.domain.model.Transaction;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SubscribeFundUseCase {
+public class SubscribeFundUseCase implements SubscribeFundPort {
 
     private static final String CLIENT_ID = "1";
 

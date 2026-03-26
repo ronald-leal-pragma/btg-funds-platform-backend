@@ -1,6 +1,6 @@
 package com.btg.funds.application.usecase;
 
-import com.btg.funds.application.port.NotificationPort;
+import com.btg.funds.application.port.out.NotificationPort;
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.domain.model.Fund;
 import com.btg.funds.domain.model.Transaction;

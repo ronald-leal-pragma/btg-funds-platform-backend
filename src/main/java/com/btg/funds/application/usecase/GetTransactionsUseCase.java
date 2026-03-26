@@ -9,7 +9,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class GetTransactionsUseCase {
+public class GetTransactionsUseCase implements com.btg.funds.application.port.in.GetTransactionsPort {
 
     private final TransactionRepository transactionRepository;
 
