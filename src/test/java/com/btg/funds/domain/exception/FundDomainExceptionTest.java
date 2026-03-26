@@ -1,4 +1,4 @@
-package com.btg.funds.domain.service;
+package com.btg.funds.domain.exception;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,7 @@
 package com.btg.funds.infrastructure.config;
 
-import com.btg.funds.infrastructure.persistence.SpringClientRepository;
-import com.btg.funds.infrastructure.persistence.SpringFundRepository;
+import com.btg.funds.infrastructure.persistence.repository.SpringClientRepository;
+import com.btg.funds.infrastructure.persistence.repository.SpringFundRepository;
 import com.btg.funds.infrastructure.persistence.document.ClientDocument;
 import com.btg.funds.infrastructure.persistence.document.FundDocument;
 import lombok.RequiredArgsConstructor;

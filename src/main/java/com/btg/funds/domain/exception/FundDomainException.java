@@ -1,4 +1,4 @@
-package com.btg.funds.domain.service;
+package com.btg.funds.domain.exception;
 
 public class FundDomainException extends RuntimeException {
     public FundDomainException(String message) {

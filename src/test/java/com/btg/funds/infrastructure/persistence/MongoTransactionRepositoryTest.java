@@ -2,10 +2,13 @@ package com.btg.funds.infrastructure.persistence;
 
 import com.btg.funds.domain.model.Transaction;
 import com.btg.funds.infrastructure.persistence.document.TransactionDocument;
+import com.btg.funds.infrastructure.persistence.mapper.TransactionDocumentMapperImpl;
+import com.btg.funds.infrastructure.persistence.repository.MongoTransactionRepository;
+import com.btg.funds.infrastructure.persistence.repository.SpringTransactionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,9 +24,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MongoTransactionRepositoryTest {
 
-    @Mock SpringTransactionRepository springTransactionRepository;
+    @Mock
+    SpringTransactionRepository springTransactionRepository;
 
-    @InjectMocks MongoTransactionRepository repository;
+    MongoTransactionRepository repository;
+
+    @BeforeEach
+    void setUp() {
+        repository = new MongoTransactionRepository(springTransactionRepository, new TransactionDocumentMapperImpl());
+    }
 
     @Test
     void should_save_transaction_and_return_domain_object() {

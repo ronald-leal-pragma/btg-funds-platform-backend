@@ -7,7 +7,7 @@ import com.btg.funds.domain.model.Transaction;
 import com.btg.funds.domain.repository.ClientRepository;
 import com.btg.funds.domain.repository.FundRepository;
 import com.btg.funds.domain.repository.TransactionRepository;
-import com.btg.funds.domain.service.FundDomainException;
+import com.btg.funds.domain.exception.FundDomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

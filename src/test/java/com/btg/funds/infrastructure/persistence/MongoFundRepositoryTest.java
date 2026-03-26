@@ -2,9 +2,12 @@ package com.btg.funds.infrastructure.persistence;
 
 import com.btg.funds.domain.model.Fund;
 import com.btg.funds.infrastructure.persistence.document.FundDocument;
+import com.btg.funds.infrastructure.persistence.mapper.FundDocumentMapperImpl;
+import com.btg.funds.infrastructure.persistence.repository.MongoFundRepository;
+import com.btg.funds.infrastructure.persistence.repository.SpringFundRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -17,9 +20,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MongoFundRepositoryTest {
 
-    @Mock SpringFundRepository springFundRepository;
+    @Mock
+    SpringFundRepository springFundRepository;
 
-    @InjectMocks MongoFundRepository repository;
+    MongoFundRepository repository;
+
+    @BeforeEach
+    void setUp() {
+        repository = new MongoFundRepository(springFundRepository, new FundDocumentMapperImpl());
+    }
 
     @Test
     void should_return_all_funds_mapped_to_domain() {

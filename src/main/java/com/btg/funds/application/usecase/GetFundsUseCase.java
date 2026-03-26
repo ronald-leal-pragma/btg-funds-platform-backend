@@ -1,32 +1,40 @@
 package com.btg.funds.application.usecase;
 
+import com.btg.funds.application.dto.FundWithStatusResponse;
+import com.btg.funds.application.mapper.FundMapper;
+import com.btg.funds.domain.exception.FondoNoEncontradoException;
+import com.btg.funds.domain.exception.FundDomainException;
 import com.btg.funds.domain.model.Client;
-import com.btg.funds.domain.model.Fund;
 import com.btg.funds.domain.repository.ClientRepository;
 import com.btg.funds.domain.repository.FundRepository;
-import com.btg.funds.domain.service.FundDomainException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GetFundsUseCase {
 
     private static final String CLIENT_ID = "1";
 
     private final FundRepository fundRepository;
     private final ClientRepository clientRepository;
+    private final FundMapper fundMapper;
 
-    public record FundWithStatus(Fund fund, boolean subscribed) {}
-
-    public List<FundWithStatus> execute() {
+    public List<FundWithStatusResponse> execute() {
+        log.info("[USECASE] GetFunds - Solicitud listado de fondos");
         Client client = clientRepository.findById(CLIENT_ID)
-                .orElseThrow(() -> new FundDomainException("Cliente no encontrado"));
+                .orElseThrow(() -> new FondoNoEncontradoException("Cliente no encontrado"));
+        log.debug("[USECASE] GetFunds - Cliente cargado: id={}, balance={}, suscripciones={}", client.id(), client.balance(), client.activeFundIds());
 
         return fundRepository.findAll().stream()
-                .map(fund -> new FundWithStatus(fund, client.isSubscribedTo(fund.id())))
+                .map(fund -> new FundWithStatusResponse(
+                        fundMapper.toResponse(fund),
+                        client.isSubscribedTo(fund.id())
+                ))
                 .toList();
     }
 }

@@ -1,4 +1,4 @@
-package com.btg.funds.infrastructure.persistence;
+package com.btg.funds.infrastructure.persistence.repository;
 
 import com.btg.funds.infrastructure.persistence.document.FundDocument;
 import org.springframework.data.mongodb.repository.MongoRepository;

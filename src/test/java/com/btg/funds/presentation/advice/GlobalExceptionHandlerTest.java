@@ -1,12 +1,14 @@
 package com.btg.funds.presentation.advice;
 
+import com.btg.funds.application.mapper.ClientMapperImpl;
 import com.btg.funds.application.usecase.GetClientUseCase;
-import com.btg.funds.domain.service.FundDomainException;
+import com.btg.funds.domain.exception.FundDomainException;
 import com.btg.funds.presentation.controller.ClientController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.when;
@@ -15,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ClientController.class)
+@Import(ClientMapperImpl.class)
 class GlobalExceptionHandlerTest {
 
     @Autowired MockMvc mockMvc;

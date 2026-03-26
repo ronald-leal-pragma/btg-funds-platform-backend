@@ -2,7 +2,7 @@ package com.btg.funds.application.usecase;
 
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.domain.repository.ClientRepository;
-import com.btg.funds.domain.service.FundDomainException;
+import com.btg.funds.domain.exception.FundDomainException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

@@ -1,10 +1,13 @@
 package com.btg.funds.application.usecase;
 
+import com.btg.funds.application.dto.FundResponse;
+import com.btg.funds.application.dto.FundWithStatusResponse;
+import com.btg.funds.application.mapper.FundMapper;
+import com.btg.funds.domain.exception.FundDomainException;
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.domain.model.Fund;
 import com.btg.funds.domain.repository.ClientRepository;
 import com.btg.funds.domain.repository.FundRepository;
-import com.btg.funds.domain.service.FundDomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +20,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +29,7 @@ class GetFundsUseCaseTest {
 
     @Mock FundRepository fundRepository;
     @Mock ClientRepository clientRepository;
+    @Mock FundMapper fundMapper;
 
     @InjectMocks GetFundsUseCase useCase;
 
@@ -38,6 +44,10 @@ class GetFundsUseCaseTest {
                 new Fund("2", "FPV_BTG_PACTUAL_ECOPETROL", 125_000L, "FPV"),
                 new Fund("3", "DEUDAPRIVADA", 50_000L, "FIC")
         );
+        lenient().when(fundMapper.toResponse(any(Fund.class))).thenAnswer(inv -> {
+            Fund f = inv.getArgument(0);
+            return new FundResponse(f.id(), f.name(), f.minAmount(), f.category());
+        });
     }
 
     @Test
@@ -45,7 +55,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(funds);
 
-        List<GetFundsUseCase.FundWithStatus> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute();
 
         assertThat(result).hasSize(3);
     }
@@ -55,7 +65,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(funds);
 
-        List<GetFundsUseCase.FundWithStatus> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute();
 
         assertThat(result.get(0).subscribed()).isTrue();
         assertThat(result.get(1).subscribed()).isFalse();
@@ -67,7 +77,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(List.of());
 
-        List<GetFundsUseCase.FundWithStatus> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute();
 
         assertThat(result).isEmpty();
     }
@@ -86,7 +96,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(funds);
 
-        List<GetFundsUseCase.FundWithStatus> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute();
 
         assertThat(result.get(0).fund().name()).isEqualTo("FPV_BTG_PACTUAL_RECAUDADORA");
         assertThat(result.get(0).fund().minAmount()).isEqualTo(75_000L);

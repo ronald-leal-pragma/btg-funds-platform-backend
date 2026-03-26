@@ -1,15 +1,18 @@
 package com.btg.funds.presentation.controller;
 
+import com.btg.funds.application.dto.FundResponse;
+import com.btg.funds.application.dto.FundWithStatusResponse;
+import com.btg.funds.application.mapper.TransactionMapperImpl;
 import com.btg.funds.application.usecase.CancelFundUseCase;
 import com.btg.funds.application.usecase.GetFundsUseCase;
 import com.btg.funds.application.usecase.SubscribeFundUseCase;
-import com.btg.funds.domain.model.Fund;
+import com.btg.funds.domain.exception.FundDomainException;
 import com.btg.funds.domain.model.Transaction;
-import com.btg.funds.domain.service.FundDomainException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -21,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FundController.class)
+@Import(TransactionMapperImpl.class)
 class FundControllerTest {
 
     @Autowired MockMvc mockMvc;
@@ -31,9 +35,9 @@ class FundControllerTest {
 
     @Test
     void should_list_funds_with_200() throws Exception {
-        Fund fund = new Fund("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, "FPV");
+        FundResponse fundResponse = new FundResponse("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, "FPV");
         when(getFundsUseCase.execute()).thenReturn(List.of(
-                new GetFundsUseCase.FundWithStatus(fund, false)
+                new FundWithStatusResponse(fundResponse, false)
         ));
 
         mockMvc.perform(get("/api/v1/funds"))

@@ -7,8 +7,10 @@ import com.btg.funds.domain.model.Transaction.TransactionType;
 import com.btg.funds.domain.repository.ClientRepository;
 import com.btg.funds.domain.repository.FundRepository;
 import com.btg.funds.domain.repository.TransactionRepository;
-import com.btg.funds.domain.service.FundDomainException;
+import com.btg.funds.domain.exception.FondoNoEncontradoException;
+import com.btg.funds.domain.exception.FundDomainException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,6 +18,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CancelFundUseCase {
 
     private static final String CLIENT_ID = "1";
@@ -25,18 +28,23 @@ public class CancelFundUseCase {
     private final TransactionRepository transactionRepository;
 
     public Transaction execute(String fundId) {
+        log.info("[USECASE] CancelFund - Solicitud para cancelar: fundId={}", fundId);
         Client client = clientRepository.findById(CLIENT_ID)
-                .orElseThrow(() -> new FundDomainException("Cliente no encontrado"));
+                .orElseThrow(() -> new FondoNoEncontradoException("Cliente no encontrado"));
+        log.debug("[USECASE] CancelFund - Cliente cargado: id={}, balance={}, suscripciones={}", client.id(), client.balance(), client.activeFundIds());
 
         Fund fund = fundRepository.findById(fundId)
-                .orElseThrow(() -> new FundDomainException("Fondo no encontrado: " + fundId));
+                .orElseThrow(() -> new FondoNoEncontradoException("Fondo no encontrado: " + fundId));
+        log.debug("[USECASE] CancelFund - Fondo cargado: id={}, nombre={}, montoMinimo={}", fund.id(), fund.name(), fund.minAmount());
 
         if (!client.isSubscribedTo(fundId)) {
+            log.warn("[USECASE] CancelFund - Cliente {} no está suscrito al fondo {}", client.id(), fundId);
             throw new FundDomainException("No está suscrito al fondo " + fund.name());
         }
 
         Client updated = client.refundBalance(fund.minAmount()).removeFund(fundId);
         clientRepository.save(updated);
+        log.info("[USECASE] CancelFund - Cancelación realizada: cliente={}, fondo={}, nuevoBalance={}", client.id(), fundId, updated.balance());
 
         Transaction transaction = new Transaction(
                 UUID.randomUUID().toString(),
@@ -47,6 +55,7 @@ public class CancelFundUseCase {
                 Instant.now()
         );
         transactionRepository.save(transaction);
+        log.debug("[USECASE] CancelFund - Transacción guardada: id={}, tipo={}, monto={}", transaction.id(), transaction.type(), transaction.amount());
 
         return transaction;
     }

@@ -2,9 +2,12 @@ package com.btg.funds.infrastructure.persistence;
 
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.infrastructure.persistence.document.ClientDocument;
+import com.btg.funds.infrastructure.persistence.mapper.ClientDocumentMapperImpl;
+import com.btg.funds.infrastructure.persistence.repository.MongoClientRepository;
+import com.btg.funds.infrastructure.persistence.repository.SpringClientRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -18,9 +21,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MongoClientRepositoryTest {
 
-    @Mock SpringClientRepository springClientRepository;
+    @Mock
+    SpringClientRepository springClientRepository;
 
-    @InjectMocks MongoClientRepository repository;
+    MongoClientRepository repository;
+
+    @BeforeEach
+    void setUp() {
+        repository = new MongoClientRepository(springClientRepository, new ClientDocumentMapperImpl());
+    }
 
     @Test
     void should_return_client_when_found() {
