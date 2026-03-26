@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,9 +27,9 @@ public class TransactionController {
 
     @GetMapping
     @Operation(summary = "Obtener historial de transacciones")
-    public ResponseEntity<List<TransactionResponse>> listTransactions() {
-        log.info("[REST] GET /api/v1/transactions - Solicitud historial de transacciones");
-        var list = getTransactionsUseCase.execute().stream()
+    public ResponseEntity<List<TransactionResponse>> listTransactions(@RequestParam(value = "sort", required = false) String sort) {
+        log.info("[REST] GET /api/v1/transactions - Solicitud historial de transacciones, sort={}", sort);
+        var list = getTransactionsUseCase.execute(sort).stream()
                 .map(transactionMapper::toResponse)
                 .toList();
         log.info("[REST] GET /api/v1/transactions - Respuesta enviada: total={}", list.size());

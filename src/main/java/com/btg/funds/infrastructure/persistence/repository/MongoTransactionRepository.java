@@ -6,6 +6,7 @@ import com.btg.funds.infrastructure.persistence.mapper.TransactionDocumentMapper
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -27,5 +28,11 @@ public class MongoTransactionRepository implements TransactionRepository {
     public List<Transaction> findAll() {
         log.debug("[REPO] MongoTransactionRepository - findAll");
         return spring.findAll().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Transaction> findAllSortedByTimestampDesc() {
+        log.debug("[REPO] MongoTransactionRepository - findAllSortedByTimestampDesc");
+        return spring.findAll(Sort.by(Sort.Direction.DESC, "timestamp")).stream().map(mapper::toDomain).toList();
     }
 }
