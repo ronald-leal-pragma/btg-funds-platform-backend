@@ -21,6 +21,7 @@
         <java.version>21</java.version>
         <lombok.version>1.18.34</lombok.version>
         <aws.sdk.version>2.25.26</aws.sdk.version>
+        <aws.serverless.version>2.0.3</aws.serverless.version>
     </properties>
 
     <dependencyManagement>
@@ -71,6 +72,13 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- AWS Serverless Java Container — adapta Spring Boot a Lambda + API Gateway -->
+        <dependency>
+            <groupId>com.amazonaws.serverless</groupId>
+            <artifactId>aws-serverless-java-container-springboot3</artifactId>
+            <version>${aws.serverless.version}</version>
         </dependency>
 
         <!-- AWS SDK v2 — SES (notificaciones email) -->
@@ -186,6 +194,7 @@
                                 <exclude>com/btg/funds/infrastructure/config/DataSeeder.class</exclude>
                                 <exclude>com/btg/funds/infrastructure/config/AwsConfig.class</exclude>
                                 <exclude>com/btg/funds/infrastructure/config/DynamoDbConfig.class</exclude>
+                                <exclude>com/btg/funds/infrastructure/lambda/StreamLambdaHandler.class</exclude>
                             </excludes>
                             <rules>
                                 <rule>
