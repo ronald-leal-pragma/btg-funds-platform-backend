@@ -42,3 +42,8 @@ node_modules/
 
 # Excluir archivos de despliegue temporales
 lambda-stack.yaml
+
+# Ignorar archivos de documentación y docker-compose que no deben seguirse
+CLAUDE.md
+ARCHITECTURE.md
+docker-compose.yml
