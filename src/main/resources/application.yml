@@ -1,9 +1,12 @@
 spring:
   application:
     name: btg-funds-platform-backend
+  # MongoDB activo por defecto (perfil local). Se desactiva con perfil "aws".
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/btgfunds}
+  autoconfigure:
+    exclude: []
 
 server:
   port: 8081
@@ -17,6 +20,39 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+aws:
+  region: ${AWS_REGION:us-east-1}
+  dynamodb:
+    # Sin default: vacío en Lambda (usa endpoint AWS real) o se fija con DYNAMODB_ENDPOINT en docker-compose
+    endpoint: ${DYNAMODB_ENDPOINT:}
+    clients-table: ${DYNAMODB_CLIENTS_TABLE:Clients}
+    funds-table: ${DYNAMODB_FUNDS_TABLE:Funds}
+    transactions-table: ${DYNAMODB_TRANSACTIONS_TABLE:Transactions}
+  ses:
+    sender-email: ${AWS_SES_SENDER_EMAIL:noreply@btgfunds.com}
+
 logging:
   level:
     com.btg.funds: DEBUG
+
+---
+# Perfil local (!aws): DynamoDB Local en localhost:8000
+spring:
+  config:
+    activate:
+      on-profile: "!aws"
+aws:
+  dynamodb:
+    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:8000}
+
+---
+# Perfil AWS: desactiva auto-configuración de MongoDB
+spring:
+  config:
+    activate:
+      on-profile: aws
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration

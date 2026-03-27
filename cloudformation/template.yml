@@ -1,0 +1,368 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  BTG Funds Platform — Stack completo:
+  Backend Lambda (Spring Boot, Java 21) + API Gateway REST,
+  Frontend S3 + CloudFront,
+  Notificaciones SES (email) + SNS (SMS).
+
+# ===========================================================
+# PARAMETERS
+# ===========================================================
+Parameters:
+
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Ambiente de despliegue
+
+  LambdaS3Bucket:
+    Type: String
+    Description: Nombre del bucket S3 que contiene el JAR del backend
+
+  LambdaS3Key:
+    Type: String
+    Default: btg-funds-platform-backend.jar
+    Description: Ruta del JAR dentro del bucket S3
+
+  SesVerifiedSender:
+    Type: String
+    Default: noreply@btgfunds.com
+    Description: Dirección email verificada en SES para enviar notificaciones
+
+  LambdaMemorySize:
+    Type: Number
+    Default: 1024
+    AllowedValues: [512, 1024, 2048, 3008]
+    Description: Memoria asignada a la función Lambda (MB)
+
+  LambdaTimeout:
+    Type: Number
+    Default: 30
+    Description: Timeout de la función Lambda (segundos)
+
+# ===========================================================
+# RESOURCES
+# ===========================================================
+Resources:
+
+  # ---------------------------------------------------------
+  # IAM — Rol de ejecución para Lambda
+  # ---------------------------------------------------------
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub btg-funds-lambda-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Permisos básicos: CloudWatch Logs
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        # X-Ray tracing
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: BtgFundsPlatformPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # DynamoDB — acceso a las tablas existentes
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Clients
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Funds
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Transactions
+              # SES — envío de emails
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+              # SNS — envío de SMS
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: '*'
+
+  # ---------------------------------------------------------
+  # LAMBDA — Función backend Spring Boot
+  # ---------------------------------------------------------
+  BackendLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub btg-funds-backend-${Environment}
+      Description: BTG Funds Platform — Backend Spring Boot
+      Runtime: java21
+      Handler: com.btg.funds.infrastructure.lambda.StreamLambdaHandler::handleRequest
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      # SnapStart reduce cold starts en Java
+      SnapStart:
+        ApplyOn: PublishedVersions
+      TracingConfig:
+        Mode: Active
+      Environment:
+        Variables:
+          SPRING_PROFILES_ACTIVE: aws
+          AWS_SES_SENDER_EMAIL: !Ref SesVerifiedSender
+          AWS_REGION_NAME: !Ref AWS::Region
+          DYNAMODB_CLIENTS_TABLE: Clients
+          DYNAMODB_FUNDS_TABLE: Funds
+          DYNAMODB_TRANSACTIONS_TABLE: Transactions
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: btg-funds-platform
+
+  # Versión publicada requerida por SnapStart
+  BackendLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref BackendLambda
+
+  # ---------------------------------------------------------
+  # API GATEWAY — REST API para el backend
+  # ---------------------------------------------------------
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub btg-funds-api-${Environment}
+      Description: BTG Funds Platform REST API
+      EndpointConfiguration:
+        Types: [REGIONAL]
+
+  # Recurso {proxy+} — captura todas las rutas bajo /
+  ApiGatewayProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: '{proxy+}'
+
+  # Método ANY /{proxy+} → Lambda
+  ApiGatewayProxyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ApiGatewayProxyResource
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt BackendLambda.Arn
+
+  # Método ANY / (raíz) → Lambda
+  ApiGatewayRootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !GetAtt ApiGateway.RootResourceId
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt BackendLambda.Arn
+
+  # Deployment — agrupa todos los métodos
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayProxyMethod
+      - ApiGatewayRootMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+
+  # Stage del ambiente (prod/dev/staging)
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ApiGateway
+      DeploymentId: !Ref ApiGatewayDeployment
+      StageName: !Ref Environment
+      TracingEnabled: true
+      MethodSettings:
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          LoggingLevel: INFO
+          DataTraceEnabled: false
+
+  # Permiso para que API Gateway invoque la Lambda
+  LambdaApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BackendLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGateway}/stages/${Environment}
+
+  # ---------------------------------------------------------
+  # NOTA: Las tablas DynamoDB (Clients, Funds, Transactions)
+  # ya existen en AWS y son referenciadas directamente.
+  # ---------------------------------------------------------
+
+  # ---------------------------------------------------------
+  # S3 — Bucket para el frontend (React build)
+  # ---------------------------------------------------------
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # AccountId evita colisiones de nombre entre cuentas
+      BucketName: !Sub btg-funds-frontend-${Environment}-${AWS::AccountId}
+      # Bloquear acceso público directo (solo via CloudFront)
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Bucket Policy — solo CloudFront puede leer el bucket
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${FrontendBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  # ---------------------------------------------------------
+  # CLOUDFRONT — CDN + Origin Access Control para S3
+  # ---------------------------------------------------------
+
+  # OAC reemplaza al OAI (Origin Access Identity) deprecado
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub btg-funds-oac-${Environment}
+        Description: OAC para bucket frontend BTG Funds
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: FrontendBucket
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub BTG Funds Frontend - ${Environment}
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100   # Solo Edge locations en US, Europa, Asia
+
+        Origins:
+          # Origen S3 para archivos estáticos del frontend
+          - Id: FrontendS3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig: {}   # Requerido cuando se usa OAC
+
+          # Origen API Gateway para llamadas al backend
+          - Id: BackendApiOrigin
+            DomainName: !Sub ${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+            OriginPath: !Sub /${Environment}
+            CustomOriginConfig:
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+
+        # Comportamiento por defecto → S3 (frontend)
+        DefaultCacheBehavior:
+          TargetOriginId: FrontendS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          # Managed-CachingOptimized — cachea assets estáticos eficientemente
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+
+        # Rutas /api/v1/* → API Gateway (sin caché)
+        CacheBehaviors:
+          - PathPattern: /api/v1/*
+            TargetOriginId: BackendApiOrigin
+            ViewerProtocolPolicy: https-only
+            # Managed-CachingDisabled — no cachear llamadas API
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            # Managed-AllViewerExceptHostHeader — reenvía headers al origin
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+
+        # SPA routing — redirigir errores 404/403 al index.html
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: btg-funds-platform
+
+# ===========================================================
+# OUTPUTS
+# ===========================================================
+Outputs:
+
+  ApiEndpoint:
+    Description: URL base del API Gateway (backend)
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiEndpoint
+
+  LambdaFunctionName:
+    Description: Nombre de la función Lambda del backend
+    Value: !Ref BackendLambda
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaFunction
+
+  FrontendBucketName:
+    Description: Nombre del bucket S3 para subir el build del frontend
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-FrontendBucket
+
+  CloudFrontDomain:
+    Description: Dominio público de CloudFront (URL del frontend)
+    Value: !Sub https://${CloudFrontDistribution.DomainName}
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontDomain
+
+  CloudFrontDistributionId:
+    Description: ID de la distribución CloudFront (para invalidar caché en cada deploy)
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontDistributionId

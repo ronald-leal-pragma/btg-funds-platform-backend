@@ -1,16 +1,18 @@
 package com.btg.funds.infrastructure.persistence.document;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
+@Profile("!aws")
 @Data
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "transactions")
 public class TransactionDocument {
@@ -29,5 +31,4 @@ public class TransactionDocument {
     private long amount;
 
     private Instant timestamp;
-
 }

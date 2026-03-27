@@ -1,6 +1,6 @@
 package com.btg.funds.presentation.advice;
 
-import com.btg.funds.application.mapper.ClientMapperImpl;
+import com.btg.funds.application.mapper.ClientMapper;
 import com.btg.funds.application.usecase.GetClientUseCase;
 import com.btg.funds.domain.exception.FundDomainException;
 import com.btg.funds.presentation.controller.ClientController;
@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ClientController.class)
-@Import(ClientMapperImpl.class)
+@Import(ClientMapper.class)
 class GlobalExceptionHandlerTest {
 
     @Autowired MockMvc mockMvc;

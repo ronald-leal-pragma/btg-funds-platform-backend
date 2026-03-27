@@ -1,6 +1,6 @@
 package com.btg.funds.presentation.controller;
 
-import com.btg.funds.application.mapper.TransactionMapperImpl;
+import com.btg.funds.application.mapper.TransactionMapper;
 import com.btg.funds.application.usecase.GetTransactionsUseCase;
 import com.btg.funds.domain.model.Transaction;
 import org.junit.jupiter.api.Test;
@@ -13,13 +13,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TransactionController.class)
-@Import(TransactionMapperImpl.class)
+@Import(TransactionMapper.class)
 class TransactionControllerTest {
 
     @Autowired MockMvc mockMvc;
@@ -34,7 +35,7 @@ class TransactionControllerTest {
                 new Transaction("uuid-2", Transaction.TransactionType.CANCELACION, "1",
                         "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, Instant.parse("2024-01-02T00:00:00Z"))
         );
-        when(getTransactionsUseCase.execute()).thenReturn(transactions);
+        when(getTransactionsUseCase.execute(any())).thenReturn(transactions);
 
         mockMvc.perform(get("/api/v1/transactions"))
                 .andExpect(status().isOk())
@@ -47,7 +48,7 @@ class TransactionControllerTest {
 
     @Test
     void should_return_empty_array_when_no_transactions() throws Exception {
-        when(getTransactionsUseCase.execute()).thenReturn(List.of());
+        when(getTransactionsUseCase.execute(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/transactions"))
                 .andExpect(status().isOk())
@@ -57,7 +58,7 @@ class TransactionControllerTest {
 
     @Test
     void should_include_amount_and_fund_name_in_response() throws Exception {
-        when(getTransactionsUseCase.execute()).thenReturn(List.of(
+        when(getTransactionsUseCase.execute(any())).thenReturn(List.of(
                 new Transaction("uuid-1", Transaction.TransactionType.APERTURA, "2",
                         "FPV_BTG_PACTUAL_ECOPETROL", 125_000L, Instant.parse("2024-03-01T00:00:00Z"))
         ));

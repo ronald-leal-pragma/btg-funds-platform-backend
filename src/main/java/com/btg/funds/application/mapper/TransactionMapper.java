@@ -2,12 +2,19 @@ package com.btg.funds.application.mapper;
 
 import com.btg.funds.application.dto.TransactionResponse;
 import com.btg.funds.domain.model.Transaction;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = "spring")
-public interface TransactionMapper {
+@Component
+public class TransactionMapper {
 
-    @Mapping(target = "type", expression = "java(transaction.type().name())")
-    TransactionResponse toResponse(Transaction transaction);
+    public TransactionResponse toResponse(Transaction transaction) {
+        return new TransactionResponse(
+                transaction.id(),
+                transaction.type().name(),
+                transaction.fundId(),
+                transaction.fundName(),
+                transaction.amount(),
+                transaction.timestamp()
+        );
+    }
 }

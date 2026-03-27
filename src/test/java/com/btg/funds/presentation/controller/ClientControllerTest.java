@@ -1,6 +1,6 @@
 package com.btg.funds.presentation.controller;
 
-import com.btg.funds.application.mapper.ClientMapperImpl;
+import com.btg.funds.application.mapper.ClientMapper;
 import com.btg.funds.application.usecase.GetClientUseCase;
 import com.btg.funds.domain.exception.FundDomainException;
 import com.btg.funds.domain.model.Client;
@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ClientController.class)
-@Import(ClientMapperImpl.class)
+@Import(ClientMapper.class)
 class ClientControllerTest {
 
     @Autowired MockMvc mockMvc;

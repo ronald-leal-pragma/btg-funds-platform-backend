@@ -2,7 +2,8 @@ package com.btg.funds.presentation.controller;
 
 import com.btg.funds.application.dto.FundResponse;
 import com.btg.funds.application.dto.FundWithStatusResponse;
-import com.btg.funds.application.mapper.TransactionMapperImpl;
+import com.btg.funds.application.mapper.FundMapper;
+import com.btg.funds.application.mapper.TransactionMapper;
 import com.btg.funds.application.usecase.CancelFundUseCase;
 import com.btg.funds.application.usecase.GetFundsUseCase;
 import com.btg.funds.application.usecase.SubscribeFundUseCase;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FundController.class)
-@Import(TransactionMapperImpl.class)
+@Import({FundMapper.class, TransactionMapper.class})
 class FundControllerTest {
 
     @Autowired MockMvc mockMvc;

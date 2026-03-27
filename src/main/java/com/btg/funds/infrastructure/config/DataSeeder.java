@@ -1,12 +1,13 @@
 package com.btg.funds.infrastructure.config;
 
-import com.btg.funds.infrastructure.persistence.repository.SpringClientRepository;
-import com.btg.funds.infrastructure.persistence.repository.SpringFundRepository;
-import com.btg.funds.infrastructure.persistence.document.ClientDocument;
-import com.btg.funds.infrastructure.persistence.document.FundDocument;
+import com.btg.funds.domain.model.Client;
+import com.btg.funds.domain.model.Fund;
+import com.btg.funds.domain.repository.ClientRepository;
+import com.btg.funds.domain.repository.FundRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -14,52 +15,42 @@ import java.util.List;
 
 @Slf4j
 @Component
+@Order(1)
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
-    private final SpringFundRepository fundRepository;
-    private final SpringClientRepository clientRepository;
+    private final FundRepository fundRepository;
+    private final ClientRepository clientRepository;
 
     @Override
     public void run(String... args) {
-        seedFunds();
-        seedClient();
+        try {
+            seedFunds();
+            seedClient();
+        } catch (Exception e) {
+            log.error("[SEEDER] Error durante seeding — la app continúa sin datos semilla: {}", e.getMessage(), e);
+        }
     }
 
     private void seedFunds() {
-        if (fundRepository.count() > 0) return;
+        if (!fundRepository.findAll().isEmpty()) return;
 
-        List<FundDocument> funds = List.of(
-                fund("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75000, "FPV"),
-                fund("2", "FPV_BTG_PACTUAL_ECOPETROL", 125000, "FPV"),
-                fund("3", "DEUDAPRIVADA", 50000, "FIC"),
-                fund("4", "FDO-ACCIONES", 250000, "FIC"),
-                fund("5", "FPV_BTG_PACTUAL_DINAMICA", 100000, "FPV")
+        List<Fund> funds = List.of(
+                new Fund("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000, "FPV"),
+                new Fund("2", "FPV_BTG_PACTUAL_ECOPETROL", 125_000, "FPV"),
+                new Fund("3", "DEUDAPRIVADA", 50_000, "FIC"),
+                new Fund("4", "FDO-ACCIONES", 250_000, "FIC"),
+                new Fund("5", "FPV_BTG_PACTUAL_DINAMICA", 100_000, "FPV")
         );
-        fundRepository.saveAll(funds);
+        funds.forEach(fundRepository::save);
         log.info("[SEEDER] {} fondos cargados", funds.size());
     }
 
     private void seedClient() {
-        if (clientRepository.existsById("1")) return;
+        if (clientRepository.findById("1").isPresent()) return;
 
-        ClientDocument client = ClientDocument.builder()
-                .id("1")
-                .balance(500000)
-                .notificationPreference("email")
-                .contactInfo("cliente@btgpactual.com")
-                .activeFundIds(new ArrayList<>())
-                .build();
+        var client = new Client("1", 500_000, "email", "cliente@btgpactual.com", new ArrayList<>());
         clientRepository.save(client);
         log.info("[SEEDER] Cliente inicial creado con saldo COP $500.000");
-    }
-
-    private FundDocument fund(String id, String name, long minAmount, String category) {
-        return FundDocument.builder()
-                .id(id)
-                .name(name)
-                .minAmount(minAmount)
-                .category(category)
-                .build();
     }
 }
