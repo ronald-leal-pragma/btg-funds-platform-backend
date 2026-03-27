@@ -1,6 +1,6 @@
 # BTG Funds — Backend
 
-API REST para la plataforma de gestión de fondos de inversión BTG Pactual (FPV/FIC). Permite a un cliente suscribirse a fondos, cancelar suscripciones, consultar su balance y ver el historial de transacciones.
+API REST para la plataforma de gestión de fondos de inversión BTG Pactual (FPV/FIC). Permite a un cliente registrarse, autenticarse, suscribirse a fondos, cancelar suscripciones, consultar su balance y ver el historial de transacciones con notificaciones vía email (SES) o SMS (SNS).
 
 ---
 
@@ -10,15 +10,16 @@ API REST para la plataforma de gestión de fondos de inversión BTG Pactual (FPV
 |---|---|---|
 | Java | 21 | Lenguaje principal (Records, Pattern Matching) |
 | Spring Boot | 3.2.3 | Framework web y contenedor |
-| Spring Data MongoDB | 3.2.3 | Persistencia (ODM) |
-| MongoDB | 8.x | Base de datos NoSQL |
+| Spring Data MongoDB | 3.2.3 | Persistencia local (perfil `!aws`) |
+| AWS DynamoDB | — | Persistencia en nube (perfil `aws`) |
+| AWS SES | — | Notificaciones por email (perfil `aws`) |
+| AWS SNS | — | Notificaciones por SMS (perfil `aws`) |
+| AWS Lambda | — | Runtime serverless (handler incluido) |
 | Maven | 3.9+ | Build tool y gestión de dependencias |
 | Lombok | 1.18.34 | Reducción de boilerplate |
-| MapStruct | 1.5.5 | Mapeo de DTOs |
 | SpringDoc OpenAPI | 2.3.0 | Documentación Swagger automática |
-| JUnit 5 | 5.10 | Framework de tests unitarios |
-| Mockito | 5.x | Mocks para tests |
-| JaCoCo | 0.8.11 | Análisis de cobertura de código (mín. 80%) |
+| JUnit 5 + Mockito | 5.x | Tests unitarios (81 tests, cobertura ≥ 80%) |
+| JaCoCo | 0.8.11 | Análisis de cobertura de código |
 
 ---
 
@@ -31,88 +32,87 @@ src/main/java/com/btg/funds/
 │
 ├── domain/                          # Núcleo — sin dependencias externas
 │   ├── model/                       # Entidades inmutables (Java Records)
-│   │   ├── Client.java              # Balance, preferencia de notificación, fondos activos
+│   │   ├── Client.java              # Balance, preferencia de notificación, fondos activos, email/password
 │   │   ├── Fund.java                # Id, nombre, monto mínimo, categoría
 │   │   └── Transaction.java         # UUID, tipo (APERTURA/CANCELACION), timestamp
 │   ├── repository/                  # Interfaces (ports) de repositorio
 │   │   ├── ClientRepository.java
 │   │   ├── FundRepository.java
 │   │   └── TransactionRepository.java
-│   └── service/
-│       └── FundDomainException.java # Excepción de negocio personalizada
+│   └── exception/
+│       ├── FundDomainException.java
+│       ├── FondoNoEncontradoException.java
+│       └── SaldoInsuficienteException.java
 │
 ├── application/                     # Casos de uso — orquesta el dominio
 │   ├── usecase/
+│   │   ├── CreateClientUseCase.java
+│   │   ├── LoginUseCase.java
+│   │   ├── GetClientUseCase.java
+│   │   ├── GetFundsUseCase.java
 │   │   ├── SubscribeFundUseCase.java
 │   │   ├── CancelFundUseCase.java
-│   │   ├── GetFundsUseCase.java
-│   │   ├── GetTransactionsUseCase.java
-│   │   └── GetClientUseCase.java
-│   └── port/
-│       └── NotificationPort.java    # Interfaz de notificación (email/SMS)
+│   │   └── GetTransactionsUseCase.java
+│   ├── port/
+│   │   ├── in/                      # Interfaces de entrada (un puerto por caso de uso)
+│   │   └── out/
+│   │       └── NotificationPort.java
+│   ├── dto/                         # Request / Response DTOs
+│   └── mapper/                      # Mapeo dominio ↔ DTO
 │
 ├── infrastructure/                  # Implementaciones concretas (adapters)
-│   ├── persistence/                 # Repositorios MongoDB
-│   │   ├── document/                # Documentos @Document (MongoDB)
-│   │   ├── MongoClientRepository.java
-│   │   ├── MongoFundRepository.java
-│   │   └── MongoTransactionRepository.java
+│   ├── persistence/
+│   │   ├── document/                # @Document (MongoDB — perfil !aws)
+│   │   ├── item/                    # @DynamoDbBean (DynamoDB — perfil aws)
+│   │   ├── mapper/                  # Mappers documento/item ↔ dominio
+│   │   └── repository/              # MongoXRepository + DynamoDbXRepository + SpringXRepository
 │   ├── notification/
-│   │   └── LogNotificationAdapter.java  # Notificación via logs (stub)
+│   │   ├── AwsNotificationAdapter.java   # SES + SNS (perfil aws)
+│   │   └── LogNotificationAdapter.java   # Logs (perfil !aws)
+│   ├── lambda/
+│   │   └── StreamLambdaHandler.java     # Entry point para AWS Lambda
 │   └── config/
-│       └── DataSeeder.java          # Datos semilla iniciales
+│       ├── AwsConfig.java           # Beans SES/SNS (perfil aws)
+│       ├── DynamoDbConfig.java      # Bean DynamoDbEnhancedClient (perfil aws)
+│       └── DataSeeder.java          # Datos semilla al arrancar
 │
 └── presentation/                    # Capa HTTP
     ├── controller/
-    │   ├── FundController.java
-    │   ├── TransactionController.java
-    │   └── ClientController.java
+    │   ├── ClientController.java    # /api/v1/client
+    │   ├── FundController.java      # /api/v1/funds
+    │   └── TransactionController.java  # /api/v1/transactions
     └── advice/
-        └── GlobalExceptionHandler.java  # Manejo global de errores
+        └── GlobalExceptionHandler.java
 ```
 
 ---
 
-## Requisitos previos
+## Perfiles de Spring
+
+| Perfil | Base de datos | Notificaciones | Uso |
+|---|---|---|---|
+| `!aws` (default) | MongoDB local | Logs | Desarrollo local |
+| `aws` | DynamoDB | SES + SNS | Producción / AWS |
+
+---
+
+## Requisitos previos (local)
 
 - **Java 21** (recomendado: Eclipse Temurin)
 - **Maven 3.9+**
-- **MongoDB** corriendo en `localhost:27017` con autenticación
-
-### Verificar versiones
+- **MongoDB** en `localhost:27017` con autenticación **O** DynamoDB Local en `localhost:8000`
 
 ```bash
-java -version        # debe mostrar 21.x
-mvn -version         # debe mostrar 3.9+
+java -version   # 21.x
+mvn -version    # 3.9+
 ```
 
-### Verificar JAVA_HOME (importante en Mac con múltiples JDKs)
-
 ```bash
-# En Mac con brew / múltiples JDKs, forzar Java 21:
+# Mac con múltiples JDKs:
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 ```
 
----
-
-## Configuración de MongoDB
-
-La aplicación requiere MongoDB con autenticación. Configura la URI en `src/main/resources/application.yml`:
-
-```yaml
-spring:
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin}
-```
-
-Para sobreescribir en tiempo de ejecución usa la variable de entorno:
-
-```bash
-export MONGODB_URI="mongodb://tu_usuario:tu_password@localhost:27017/btgfunds_db?authSource=admin"
-```
-
-### Levantar MongoDB con Docker (si no tienes una instancia activa)
+### Levantar MongoDB con Docker
 
 ```bash
 docker run -d \
@@ -125,137 +125,84 @@ docker run -d \
 
 ---
 
-## Ejecución paso a paso
-
-### 1. Clonar o entrar al directorio del backend
+## Ejecución local
 
 ```bash
-cd backend
+# Compilar
+mvn clean compile
+
+# Ejecutar (perfil !aws → usa MongoDB)
+mvn spring-boot:run
 ```
 
-### 2. Compilar el proyecto
+El servidor inicia en **http://localhost:8081**.
 
-```bash
-JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn clean compile
-```
-
-### 3. Ejecutar el servidor de desarrollo
-
-```bash
-JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
-```
-
-El servidor inicia en **http://localhost:8081**
-
-Al arrancar, el `DataSeeder` carga automáticamente en MongoDB:
+Al arrancar, `DataSeeder` carga automáticamente:
 - 5 fondos de inversión (FPV y FIC)
-- 1 cliente con balance inicial de **COP $500,000**
-
-### 4. Verificar que el servidor está corriendo
-
-```bash
-curl http://localhost:8081/api/v1/client
-```
-
-Respuesta esperada:
-```json
-{
-  "id": "1",
-  "balance": 500000,
-  "notificationPreference": "email",
-  "contactInfo": "user@email.com",
-  "activeFundIds": []
-}
-```
+- 1 cliente demo: `user@email.com` / `btg1234` con balance inicial **COP $500,000**
 
 ---
 
-## Endpoints disponibles
+## Endpoints
+
+### Autenticación / Cliente
 
 | Método | URL | Descripción |
 |--------|-----|-------------|
-| `GET` | `/api/v1/client` | Estado del cliente (balance, fondos activos) |
-| `GET` | `/api/v1/funds` | Listar fondos con estado de suscripción |
-| `POST` | `/api/v1/funds/{id}/subscribe` | Suscribirse a un fondo |
-| `DELETE` | `/api/v1/funds/{id}/cancel` | Cancelar suscripción a un fondo |
-| `GET` | `/api/v1/transactions` | Historial de transacciones |
+| `POST` | `/api/v1/client/login` | Iniciar sesión (retorna datos del cliente) |
+| `POST` | `/api/v1/client` | Crear nuevo cliente |
+| `GET` | `/api/v1/client/{clientId}` | Estado del cliente (balance, fondos activos) |
+
+### Fondos
+
+| Método | URL | Parámetros | Descripción |
+|--------|-----|-----------|-------------|
+| `GET` | `/api/v1/funds` | `?clientId=` (opcional) | Listar fondos con estado de suscripción |
+| `POST` | `/api/v1/funds/{id}/subscribe` | `?clientId=` | Suscribirse a un fondo |
+| `DELETE` | `/api/v1/funds/{id}/cancel` | `?clientId=` | Cancelar suscripción |
+
+### Transacciones
+
+| Método | URL | Parámetros | Descripción |
+|--------|-----|-----------|-------------|
+| `GET` | `/api/v1/transactions` | `?clientId=` | Historial de transacciones |
 
 ### Ejemplos con curl
 
 ```bash
-# Listar fondos
-curl http://localhost:8081/api/v1/funds
+# Login
+curl -X POST http://localhost:8081/api/v1/client/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@email.com","password":"btg1234"}'
+
+# Crear cliente
+curl -X POST http://localhost:8081/api/v1/client \
+  -H "Content-Type: application/json" \
+  -d '{"email":"nuevo@email.com","password":"pass123","notificationPreference":"email","contactInfo":"nuevo@email.com"}'
+
+# Listar fondos con estado de suscripción
+curl "http://localhost:8081/api/v1/funds?clientId=1"
 
 # Suscribirse al fondo 1 (FPV_BTG_PACTUAL_RECAUDADORA — $75,000)
-curl -X POST http://localhost:8081/api/v1/funds/1/subscribe
+curl -X POST "http://localhost:8081/api/v1/funds/1/subscribe?clientId=1"
 
 # Cancelar suscripción al fondo 1
-curl -X DELETE http://localhost:8081/api/v1/funds/1/cancel
+curl -X DELETE "http://localhost:8081/api/v1/funds/1/cancel?clientId=1"
 
 # Ver historial de transacciones
-curl http://localhost:8081/api/v1/transactions
+curl "http://localhost:8081/api/v1/transactions?clientId=1"
 ```
 
 ### Reglas de negocio
 
 - Balance inicial: **COP $500,000**
-- Si el saldo es insuficiente, la API retorna `HTTP 400`:
+- Saldo insuficiente → `HTTP 400`:
   ```json
   { "message": "No tiene saldo disponible para vincularse al fondo FPV_BTG_PACTUAL_RECAUDADORA" }
   ```
-- Cancelar un fondo **devuelve** el monto al balance del cliente
+- Cancelar un fondo **devuelve** el monto al balance
 - Cada transacción genera un **UUID** único
-
----
-
-## Documentación Swagger
-
-Con el servidor corriendo, accede a la UI interactiva:
-
-```
-http://localhost:8081/swagger-ui.html
-```
-
-Especificación OpenAPI en JSON:
-
-```
-http://localhost:8081/api-docs
-```
-
----
-
-## Tests
-
-### Ejecutar tests unitarios
-
-```bash
-JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn test
-```
-
-### Ejecutar tests + reporte de cobertura
-
-```bash
-JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn verify
-```
-
-El reporte HTML de JaCoCo se genera en:
-
-```
-target/site/jacoco/index.html
-```
-
-### Cobertura mínima requerida: 80%
-
-| Capa | Tests |
-|------|-------|
-| Domain — `Client` | Todos los métodos (balance, suscripción) |
-| Application — Use Cases | Casos feliz + errores de negocio |
-| Infrastructure — Repositories | Mapeo document ↔ domain |
-| Infrastructure — Notification | Canal email y SMS |
-| Presentation — Controllers | HTTP 200 / 400 / 500 |
-| Presentation — ExceptionHandler | Excepciones de dominio y genéricas |
-
-Total: **68 tests, 0 failures**
+- Al suscribirse se envía notificación según preferencia (`email` → SES, `sms` → SNS)
 
 ---
 
@@ -271,95 +218,116 @@ Total: **68 tests, 0 failures**
 
 ---
 
-## Build para producción
+## Documentación Swagger
 
-```bash
-JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn clean package -DskipTests
 ```
-
-El JAR ejecutable se genera en `target/btg-funds-platform-backend-0.0.1-SNAPSHOT.jar`:
-
-```bash
-java -jar target/btg-funds-platform-backend-0.0.1-SNAPSHOT.jar \
-  --MONGODB_URI="mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin"
+http://localhost:8081/swagger-ui.html   # UI interactiva
+http://localhost:8081/api-docs          # Especificación OpenAPI JSON
 ```
 
 ---
 
-## Despliegue con AWS CloudFormation
-
-El repositorio incluye la plantilla `lambda-stack.yaml` en la raíz del proyecto para desplegar los recursos (lambdas, roles, etc.). A continuación se describen pasos recomendados para validar, empaquetar y desplegar la plantilla usando la AWS CLI.
-
-Requisitos previos:
-- AWS CLI v2 instalada y configurada (`aws configure`).
-- Credenciales con permisos suficientes para crear stacks y recursos IAM.
-- (Opcional) Un bucket S3 para subir artefactos si la plantilla requiere empaquetado de código.
-
-1) Validar la plantilla localmente
+## Tests
 
 ```bash
-aws cloudformation validate-template --template-body file://lambda-stack.yaml
+# Tests unitarios
+mvn test
+
+# Tests + reporte de cobertura (target/site/jacoco/index.html)
+mvn verify
 ```
 
-2) Empaquetar (solo si la plantilla referencia artefactos locales - p. ej. código Lambda)
+| Capa | Cobertura |
+|------|-----------|
+| Domain — `Client` | Métodos de balance y suscripción |
+| Application — Use Cases | Caso feliz + errores de negocio |
+| Infrastructure — Repositories | DynamoDB + MongoDB |
+| Infrastructure — Notification | Email y SMS |
+| Presentation — Controllers | HTTP 200 / 400 / 500 |
+| Presentation — ExceptionHandler | Excepciones de dominio y genéricas |
+
+**Total: 81 tests, 0 failures — cobertura mínima 80%**
+
+---
+
+## Build para producción
 
 ```bash
-# Reemplaza <my-bucket> por un bucket S3 que controles
-aws cloudformation package \
-  --template-file lambda-stack.yaml \
-  --s3-bucket <my-bucket> \
-  --output-template-file packaged.yaml
+mvn clean package -DskipTests
 ```
 
-3) Desplegar el stack
+Genera `target/btg-funds-platform-backend-0.0.1-SNAPSHOT.jar` (fat JAR vía `maven-shade-plugin`).
 
-Si no usaste `package` (plantilla ya con referencias remotas):
+---
+
+## Despliegue en AWS
+
+El repositorio incluye un script de deploy automatizado y la plantilla CloudFormation.
+
+### Prerequisitos
+
+1. **AWS CLI** instalada y configurada (`aws configure`)
+2. **Email SES verificado** — ir a [AWS Console → SES → Verified identities](https://console.aws.amazon.com/ses/home#/verified-identities) y verificar el email remitente. En sandbox, el destinatario también debe estar verificado.
+3. **SNS SMS sandbox** — para probar SMS, verificar el número en [SNS → SMS sandbox](https://console.aws.amazon.com/sns/v3/home#/mobile/text-messages).
+
+### Deploy completo (primera vez)
 
 ```bash
-aws cloudformation deploy \
-  --template-file lambda-stack.yaml \
-  --stack-name btg-funds-backend \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --region us-east-1
+./deploy.sh --sender-email tu-email-verificado@gmail.com
 ```
 
-Si usaste `package`, despliega `packaged.yaml` en su lugar:
+### Opciones del script
 
 ```bash
-aws cloudformation deploy \
-  --template-file packaged.yaml \
-  --stack-name btg-funds-backend \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --region us-east-1
+./deploy.sh [opciones]
+
+  --stack-name    Nombre del stack CloudFormation  (default: btg-funds-prod)
+  --bucket        Bucket S3 para el JAR            (default: btg-funds-deploy-<account-id>)
+  --region        Región AWS                        (default: us-east-1)
+  --env           Ambiente (dev|staging|prod)        (default: prod)
+  --sender-email  Email verificado en SES            (default: noreply@btgfunds.com)
+  --skip-build    Omitir compilación del backend
+  --skip-frontend Omitir build y sync del frontend
 ```
 
-4) Pasar parámetros (si la plantilla define parámetros)
+### Lo que hace el script
+
+1. Crea el bucket S3 de deploy si no existe
+2. Crea las tablas DynamoDB (`Clients`, `Funds`, `Transactions`) si no existen
+3. Compila el backend (`mvn clean package -DskipTests`)
+4. Sube el JAR a S3
+5. Despliega el stack CloudFormation (`cloudformation/template.yml`)
+6. Compila el frontend React (`npm run build`)
+7. Sincroniza el frontend al bucket S3
+8. Invalida la caché de CloudFront
+
+### Infraestructura creada por CloudFormation
+
+| Recurso | Descripción |
+|---------|-------------|
+| Lambda | Spring Boot como función Lambda (Java 21, 1024 MB) |
+| API Gateway REST | Proxy hacia Lambda — expone `/api/v1/*` |
+| DynamoDB | Tablas `Clients`, `Funds`, `Transactions` (PAY_PER_REQUEST) |
+| S3 + CloudFront | Hosting del frontend React con HTTPS |
+| IAM Role | Permisos mínimos (DynamoDB + SES + SNS + CloudWatch) |
+
+### Outputs del stack
 
 ```bash
-aws cloudformation deploy \
-  --template-file packaged.yaml \
-  --stack-name btg-funds-backend \
-  --parameter-overrides ParamKey1=Value1 ParamKey2=Value2 \
-  --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation describe-stacks --stack-name btg-funds-prod \
+  --query 'Stacks[0].Outputs'
 ```
 
-5) Verificar estado y eventos
+| Output | Descripción |
+|--------|-------------|
+| `ApiEndpoint` | URL base del API Gateway |
+| `CloudFrontDomain` | URL pública del frontend |
+| `FrontendBucketName` | Bucket S3 del frontend |
+| `CloudFrontDistributionId` | ID de la distribución CloudFront |
 
-```bash
-aws cloudformation describe-stacks --stack-name btg-funds-backend
-aws cloudformation describe-stack-events --stack-name btg-funds-backend
-# Esperar a que termine el create/update
-aws cloudformation wait stack-create-complete --stack-name btg-funds-backend
+### Credenciales demo (tras primer deploy)
+
 ```
-
-6) Eliminar el stack
-
-```bash
-aws cloudformation delete-stack --stack-name btg-funds-backend
+Email   : user@email.com
+Password: btg1234
 ```
-
-Notas:
-- Siempre especifica `--capabilities CAPABILITY_NAMED_IAM` si la plantilla crea o modifica roles/ políticas IAM.
-- Si la plantilla necesita artefactos (ZIPs) que no están ya en S3, usa `package` antes de `deploy`.
-- Revisa los `Outputs` del stack para obtener ARNs o endpoints creados.
-
