@@ -13,7 +13,7 @@ class ClientTest {
 
     @BeforeEach
     void setUp() {
-        client = new Client("1", 500_000L, "email", "user@test.com", List.of("3"));
+        client = new Client("1", 500_000L, "email", "user@test.com", List.of("3"), "user@test.com", "pass123");
     }
 
     @Test

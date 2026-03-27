@@ -8,10 +8,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 
-/**
- * Configuración de clientes AWS SDK v2.
- * Solo activa con el perfil "aws" — no se instancia en entorno local.
- */
 @Configuration
 @Profile("aws")
 public class AwsConfig {

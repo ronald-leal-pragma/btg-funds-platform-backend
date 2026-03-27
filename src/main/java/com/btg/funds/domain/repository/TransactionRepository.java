@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface TransactionRepository {
     Transaction save(Transaction transaction);
-    List<Transaction> findAll();
-    List<Transaction> findAllSortedByTimestampDesc();
+    List<Transaction> findByClientId(String clientId);
+    List<Transaction> findByClientIdSortedByTimestampDesc(String clientId);
 }

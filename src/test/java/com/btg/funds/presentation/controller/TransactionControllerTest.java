@@ -13,7 +13,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,14 +32,14 @@ class TransactionControllerTest {
     @Test
     void should_list_transactions_with_200() throws Exception {
         List<Transaction> transactions = List.of(
-                new Transaction("uuid-1", Transaction.TransactionType.APERTURA, "1",
+                new Transaction("uuid-1", "1", Transaction.TransactionType.APERTURA, "1",
                         "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, Instant.parse("2024-01-01T00:00:00Z")),
-                new Transaction("uuid-2", Transaction.TransactionType.CANCELACION, "1",
+                new Transaction("uuid-2", "1", Transaction.TransactionType.CANCELACION, "1",
                         "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, Instant.parse("2024-01-02T00:00:00Z"))
         );
-        when(getTransactionsUseCase.execute(any())).thenReturn(transactions);
+        when(getTransactionsUseCase.execute(anyString(), nullable(String.class))).thenReturn(transactions);
 
-        mockMvc.perform(get("/api/v1/transactions"))
+        mockMvc.perform(get("/api/v1/transactions").param("clientId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -48,9 +50,9 @@ class TransactionControllerTest {
 
     @Test
     void should_return_empty_array_when_no_transactions() throws Exception {
-        when(getTransactionsUseCase.execute(any())).thenReturn(List.of());
+        when(getTransactionsUseCase.execute(anyString(), nullable(String.class))).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/transactions"))
+        mockMvc.perform(get("/api/v1/transactions").param("clientId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -58,12 +60,12 @@ class TransactionControllerTest {
 
     @Test
     void should_include_amount_and_fund_name_in_response() throws Exception {
-        when(getTransactionsUseCase.execute(any())).thenReturn(List.of(
-                new Transaction("uuid-1", Transaction.TransactionType.APERTURA, "2",
+        when(getTransactionsUseCase.execute(anyString(), nullable(String.class))).thenReturn(List.of(
+                new Transaction("uuid-1", "2", Transaction.TransactionType.APERTURA, "2",
                         "FPV_BTG_PACTUAL_ECOPETROL", 125_000L, Instant.parse("2024-03-01T00:00:00Z"))
         ));
 
-        mockMvc.perform(get("/api/v1/transactions"))
+        mockMvc.perform(get("/api/v1/transactions").param("clientId", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].fundName").value("FPV_BTG_PACTUAL_ECOPETROL"))
                 .andExpect(jsonPath("$[0].amount").value(125000));

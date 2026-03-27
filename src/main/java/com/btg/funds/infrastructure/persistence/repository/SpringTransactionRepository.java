@@ -10,6 +10,8 @@ import java.util.List;
 @Profile("!aws")
 public interface SpringTransactionRepository extends MongoRepository<TransactionDocument, String> {
 
-    @Query(sort = "{ 'timestamp': -1 }")
-    List<TransactionDocument> findAllByOrderByTimestampDesc();
+    List<TransactionDocument> findByClientId(String clientId);
+
+    @Query(value = "{ 'client_id': ?0 }", sort = "{ 'timestamp': -1 }")
+    List<TransactionDocument> findByClientIdOrderByTimestampDesc(String clientId);
 }

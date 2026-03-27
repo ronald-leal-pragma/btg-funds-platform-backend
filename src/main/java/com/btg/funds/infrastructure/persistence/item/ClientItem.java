@@ -29,4 +29,10 @@ public class ClientItem {
 
     @Getter
     private List<String> activeFundIds;
+
+    @Getter
+    private String email;
+
+    @Getter
+    private String password;
 }

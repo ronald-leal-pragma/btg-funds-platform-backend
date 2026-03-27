@@ -21,16 +21,14 @@ import java.util.UUID;
 @Slf4j
 public class CancelFundUseCase implements com.btg.funds.application.port.in.CancelFundPort {
 
-    private static final String CLIENT_ID = "1";
-
     private final ClientRepository clientRepository;
     private final FundRepository fundRepository;
     private final TransactionRepository transactionRepository;
 
-    public Transaction execute(String fundId) {
-        log.info("[USECASE] CancelFund - Solicitud para cancelar: fundId={}", fundId);
-        Client client = clientRepository.findById(CLIENT_ID)
-                .orElseThrow(() -> new FondoNoEncontradoException("Cliente no encontrado"));
+    public Transaction execute(String clientId, String fundId) {
+        log.info("[USECASE] CancelFund - Solicitud para cancelar: clientId={}, fundId={}", clientId, fundId);
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new FondoNoEncontradoException("Cliente no encontrado: " + clientId));
         log.debug("[USECASE] CancelFund - Cliente cargado: id={}, balance={}, suscripciones={}", client.id(), client.balance(), client.activeFundIds());
 
         Fund fund = fundRepository.findById(fundId)
@@ -48,6 +46,7 @@ public class CancelFundUseCase implements com.btg.funds.application.port.in.Canc
 
         Transaction transaction = new Transaction(
                 UUID.randomUUID().toString(),
+                clientId,
                 TransactionType.CANCELACION,
                 fund.id(),
                 fund.name(),

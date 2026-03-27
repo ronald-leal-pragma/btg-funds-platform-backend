@@ -25,12 +25,12 @@ class GetTransactionsUseCaseTest {
     @Test
     void should_return_all_transactions() {
         List<Transaction> transactions = List.of(
-                new Transaction("uuid-1", Transaction.TransactionType.APERTURA, "1", "FPV_BTG", 75_000L, Instant.now()),
-                new Transaction("uuid-2", Transaction.TransactionType.CANCELACION, "1", "FPV_BTG", 75_000L, Instant.now())
+                new Transaction("uuid-1", "1", Transaction.TransactionType.APERTURA, "1", "FPV_BTG", 75_000L, Instant.now()),
+                new Transaction("uuid-2", "1", Transaction.TransactionType.CANCELACION, "1", "FPV_BTG", 75_000L, Instant.now())
         );
-        when(transactionRepository.findAll()).thenReturn(transactions);
+        when(transactionRepository.findByClientIdSortedByTimestampDesc("1")).thenReturn(transactions);
 
-        List<Transaction> result = useCase.execute();
+        List<Transaction> result = useCase.execute("1", null);
 
         assertThat(result).hasSize(2);
         assertThat(result).isEqualTo(transactions);
@@ -38,19 +38,28 @@ class GetTransactionsUseCaseTest {
 
     @Test
     void should_return_empty_list_when_no_transactions() {
-        when(transactionRepository.findAll()).thenReturn(List.of());
+        when(transactionRepository.findByClientIdSortedByTimestampDesc("1")).thenReturn(List.of());
 
-        List<Transaction> result = useCase.execute();
+        List<Transaction> result = useCase.execute("1", null);
 
         assertThat(result).isEmpty();
     }
 
     @Test
-    void should_delegate_to_repository() {
-        when(transactionRepository.findAll()).thenReturn(List.of());
+    void should_delegate_to_repository_sorted_desc_by_default() {
+        when(transactionRepository.findByClientIdSortedByTimestampDesc("1")).thenReturn(List.of());
 
-        useCase.execute();
+        useCase.execute("1", null);
 
-        verify(transactionRepository).findAll();
+        verify(transactionRepository).findByClientIdSortedByTimestampDesc("1");
+    }
+
+    @Test
+    void should_delegate_to_repository_unsorted_when_sort_is_asc() {
+        when(transactionRepository.findByClientId("1")).thenReturn(List.of());
+
+        useCase.execute("1", "asc");
+
+        verify(transactionRepository).findByClientId("1");
     }
 }

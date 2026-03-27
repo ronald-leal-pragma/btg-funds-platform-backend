@@ -215,7 +215,7 @@ Resources:
       FunctionName: !Ref BackendLambda
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGateway}/stages/${Environment}
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
 
   # ---------------------------------------------------------
   # NOTA: Las tablas DynamoDB (Clients, Funds, Transactions)
@@ -285,7 +285,8 @@ Resources:
           - Id: FrontendS3Origin
             DomainName: !GetAtt FrontendBucket.RegionalDomainName
             OriginAccessControlId: !Ref CloudFrontOAC
-            S3OriginConfig: {}   # Requerido cuando se usa OAC
+            S3OriginConfig:
+              OriginAccessIdentity: ''   # Vacío cuando se usa OAC (no OAI)
 
           # Origen API Gateway para llamadas al backend
           - Id: BackendApiOrigin

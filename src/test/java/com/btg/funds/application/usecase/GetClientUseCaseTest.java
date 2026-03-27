@@ -26,10 +26,10 @@ class GetClientUseCaseTest {
 
     @Test
     void should_return_client_when_found() {
-        Client client = new Client("1", 500_000L, "email", "user@test.com", List.of());
+        Client client = new Client("1", 500_000L, "email", "user@test.com", List.of(), "user@test.com", "pass123");
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
 
-        Client result = useCase.execute();
+        Client result = useCase.execute("1");
 
         assertThat(result).isEqualTo(client);
         assertThat(result.balance()).isEqualTo(500_000L);
@@ -39,17 +39,17 @@ class GetClientUseCaseTest {
     void should_throw_when_client_not_found() {
         when(clientRepository.findById("1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute())
-                .isInstanceOf(FundDomainException.class)
-                .hasMessage("Cliente no encontrado");
+        assertThatThrownBy(() -> useCase.execute("1"))
+            .isInstanceOf(FundDomainException.class)
+            .hasMessageContaining("Cliente no encontrado");
     }
 
     @Test
     void should_query_with_fixed_client_id() {
-        Client client = new Client("1", 500_000L, "sms", "+573001234567", List.of("2"));
+        Client client = new Client("1", 500_000L, "sms", "+573001234567", List.of("2"), "user@test.com", "pass123");
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
 
-        useCase.execute();
+        useCase.execute("1");
 
         verify(clientRepository).findById("1");
     }

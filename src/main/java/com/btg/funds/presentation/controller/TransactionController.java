@@ -27,9 +27,11 @@ public class TransactionController {
 
     @GetMapping
     @Operation(summary = "Obtener historial de transacciones")
-    public ResponseEntity<List<TransactionResponse>> listTransactions(@RequestParam(value = "sort", required = false) String sort) {
-        log.info("[REST] GET /api/v1/transactions - Solicitud historial de transacciones, sort={}", sort);
-        var list = getTransactionsUseCase.execute(sort).stream()
+    public ResponseEntity<List<TransactionResponse>> listTransactions(
+            @RequestParam String clientId,
+            @RequestParam(value = "sort", required = false) String sort) {
+        log.info("[REST] GET /api/v1/transactions - clientId={}, sort={}", clientId, sort);
+        var list = getTransactionsUseCase.execute(clientId, sort).stream()
                 .map(transactionMapper::toResponse)
                 .toList();
         log.info("[REST] GET /api/v1/transactions - Respuesta enviada: total={}", list.size());

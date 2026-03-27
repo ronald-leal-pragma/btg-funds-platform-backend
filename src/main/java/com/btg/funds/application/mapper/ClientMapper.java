@@ -13,7 +13,8 @@ public class ClientMapper {
                 client.balance(),
                 client.notificationPreference(),
                 client.contactInfo(),
-                client.activeFundIds()
+                client.activeFundIds(),
+                client.email()
         );
     }
 }

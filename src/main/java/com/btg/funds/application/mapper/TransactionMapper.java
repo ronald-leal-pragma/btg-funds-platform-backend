@@ -10,6 +10,7 @@ public class TransactionMapper {
     public TransactionResponse toResponse(Transaction transaction) {
         return new TransactionResponse(
                 transaction.id(),
+                transaction.clientId(),
                 transaction.type().name(),
                 transaction.fundId(),
                 transaction.fundName(),

@@ -20,6 +20,9 @@ public class TransactionDocument {
     @Id
     private String id;
 
+    @Field("client_id")
+    private String clientId;
+
     private String type;
 
     @Field("fund_id")

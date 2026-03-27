@@ -4,6 +4,7 @@ import java.time.Instant;
 
 public record Transaction(
         String id,
+        String clientId,
         TransactionType type,
         String fundId,
         String fundName,

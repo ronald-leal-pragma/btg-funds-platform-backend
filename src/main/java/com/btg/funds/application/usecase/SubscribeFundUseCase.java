@@ -24,17 +24,15 @@ import java.util.UUID;
 @Slf4j
 public class SubscribeFundUseCase implements SubscribeFundPort {
 
-    private static final String CLIENT_ID = "1";
-
     private final ClientRepository clientRepository;
     private final FundRepository fundRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationPort notificationPort;
 
-    public Transaction execute(String fundId) {
-        log.info("[USECASE] SubscribeFund - Solicitud para suscribirse: fundId={}", fundId);
-        Client client = clientRepository.findById(CLIENT_ID)
-                .orElseThrow(() -> new FondoNoEncontradoException("Cliente no encontrado"));
+    public Transaction execute(String clientId, String fundId) {
+        log.info("[USECASE] SubscribeFund - Solicitud para suscribirse: clientId={}, fundId={}", clientId, fundId);
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new FondoNoEncontradoException("Cliente no encontrado: " + clientId));
         log.debug("[USECASE] SubscribeFund - Cliente cargado: id={}, balance={}, suscripciones={}", client.id(), client.balance(), client.activeFundIds());
 
         Fund fund = fundRepository.findById(fundId)
@@ -57,6 +55,7 @@ public class SubscribeFundUseCase implements SubscribeFundPort {
 
         Transaction transaction = new Transaction(
                 UUID.randomUUID().toString(),
+                clientId,
                 TransactionType.APERTURA,
                 fund.id(),
                 fund.name(),

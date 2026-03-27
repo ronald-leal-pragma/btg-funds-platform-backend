@@ -40,8 +40,8 @@ class CancelFundUseCaseTest {
     @BeforeEach
     void setUp() {
         fund1 = new Fund("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, "FPV");
-        clientSubscribed = new Client("1", 425_000L, "email", "user@test.com", List.of("1"));
-        clientNotSubscribed = new Client("1", 500_000L, "email", "user@test.com", List.of());
+        clientSubscribed = new Client("1", 425_000L, "email", "user@test.com", List.of("1"), "user@test.com", "pass123");
+        clientNotSubscribed = new Client("1", 500_000L, "email", "user@test.com", List.of(), "user@test.com", "pass123");
     }
 
     @Test
@@ -51,7 +51,7 @@ class CancelFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Transaction result = useCase.execute("1");
+        Transaction result = useCase.execute("1", "1");
 
         assertThat(result).isNotNull();
         assertThat(result.type()).isEqualTo(Transaction.TransactionType.CANCELACION);
@@ -66,7 +66,7 @@ class CancelFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.execute("1");
+        useCase.execute("1", "1");
 
         ArgumentCaptor<Client> captor = ArgumentCaptor.forClass(Client.class);
         verify(clientRepository).save(captor.capture());
@@ -78,9 +78,9 @@ class CancelFundUseCaseTest {
     void should_throw_when_client_not_found() {
         when(clientRepository.findById("1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute("1"))
-                .isInstanceOf(FundDomainException.class)
-                .hasMessage("Cliente no encontrado");
+        assertThatThrownBy(() -> useCase.execute("1", "1"))
+            .isInstanceOf(FundDomainException.class)
+            .hasMessageContaining("Cliente no encontrado");
     }
 
     @Test
@@ -88,7 +88,7 @@ class CancelFundUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(clientSubscribed));
         when(fundRepository.findById("99")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute("99"))
+        assertThatThrownBy(() -> useCase.execute("1", "99"))
                 .isInstanceOf(FundDomainException.class)
                 .hasMessageContaining("Fondo no encontrado");
     }
@@ -98,7 +98,7 @@ class CancelFundUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(clientNotSubscribed));
         when(fundRepository.findById("1")).thenReturn(Optional.of(fund1));
 
-        assertThatThrownBy(() -> useCase.execute("1"))
+        assertThatThrownBy(() -> useCase.execute("1", "1"))
                 .isInstanceOf(FundDomainException.class)
                 .hasMessageContaining("No está suscrito al fondo");
     }
@@ -110,7 +110,7 @@ class CancelFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.execute("1");
+        useCase.execute("1", "1");
 
         ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepository).save(captor.capture());

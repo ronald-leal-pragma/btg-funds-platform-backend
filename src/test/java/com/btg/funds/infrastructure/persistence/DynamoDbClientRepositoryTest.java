@@ -2,6 +2,7 @@ package com.btg.funds.infrastructure.persistence;
 
 import com.btg.funds.domain.model.Client;
 import com.btg.funds.infrastructure.persistence.item.ClientItem;
+import com.btg.funds.infrastructure.persistence.mapper.ClientItemMapper;
 import com.btg.funds.infrastructure.persistence.repository.DynamoDbClientRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,12 +38,12 @@ class DynamoDbClientRepositoryTest {
     @BeforeEach
     void setUp() {
         when(enhancedClient.table(eq("Clients"), any(TableSchema.class))).thenReturn(table);
-        repository = new DynamoDbClientRepository(enhancedClient, "Clients");
+        repository = new DynamoDbClientRepository(enhancedClient, "Clients", new ClientItemMapper());
     }
 
     @Test
     void should_return_client_when_found() {
-        var item = new ClientItem("1", 500_000L, "email", "u@test.com", new ArrayList<>(List.of("1")));
+        var item = new ClientItem("1", 500_000L, "email", "u@test.com", new ArrayList<>(List.of("1")), "u@test.com", "pass123");
         when(table.getItem(any(Key.class))).thenReturn(item);
 
         Optional<Client> result = repository.findById("1");
@@ -53,6 +54,7 @@ class DynamoDbClientRepositoryTest {
         assertThat(result.get().notificationPreference()).isEqualTo("email");
         assertThat(result.get().contactInfo()).isEqualTo("u@test.com");
         assertThat(result.get().activeFundIds()).containsExactly("1");
+        assertThat(result.get().email()).isEqualTo("u@test.com");
     }
 
     @Test
@@ -66,7 +68,7 @@ class DynamoDbClientRepositoryTest {
 
     @Test
     void should_handle_null_active_fund_ids() {
-        var item = new ClientItem("1", 500_000L, "sms", "+573001234567", null);
+        var item = new ClientItem("1", 500_000L, "sms", "+573001234567", null, "u@test.com", "pass123");
         when(table.getItem(any(Key.class))).thenReturn(item);
 
         Optional<Client> result = repository.findById("1");
@@ -77,7 +79,7 @@ class DynamoDbClientRepositoryTest {
 
     @Test
     void should_save_and_return_client() {
-        var client = new Client("1", 425_000L, "email", "u@test.com", List.of("1"));
+        var client = new Client("1", 425_000L, "email", "u@test.com", List.of("1"), "u@test.com", "pass123");
 
         Client result = repository.save(client);
 

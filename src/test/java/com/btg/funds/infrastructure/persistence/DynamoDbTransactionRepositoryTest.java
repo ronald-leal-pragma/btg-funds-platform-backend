@@ -2,6 +2,7 @@ package com.btg.funds.infrastructure.persistence;
 
 import com.btg.funds.domain.model.Transaction;
 import com.btg.funds.infrastructure.persistence.item.TransactionItem;
+import com.btg.funds.infrastructure.persistence.mapper.TransactionItemMapper;
 import com.btg.funds.infrastructure.persistence.repository.DynamoDbTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,14 +43,14 @@ class DynamoDbTransactionRepositoryTest {
     @BeforeEach
     void setUp() {
         when(enhancedClient.table(eq("Transactions"), any(TableSchema.class))).thenReturn(table);
-        repository = new DynamoDbTransactionRepository(enhancedClient, "Transactions");
+        repository = new DynamoDbTransactionRepository(enhancedClient, "Transactions", new TransactionItemMapper());
     }
 
     @Test
     void should_save_transaction_and_return_domain_object() {
         var now = Instant.now();
-        var transaction = new Transaction("uuid-1", Transaction.TransactionType.APERTURA,
-                "1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, now);
+        var transaction = new Transaction("uuid-1", "1", Transaction.TransactionType.APERTURA,
+            "1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, now);
 
         Transaction result = repository.save(transaction);
 
@@ -62,14 +63,14 @@ class DynamoDbTransactionRepositoryTest {
     @Test
     void should_map_transaction_to_item_correctly_on_save() {
         var now = Instant.now();
-        var transaction = new Transaction("uuid-2", Transaction.TransactionType.CANCELACION,
-                "2", "FPV_BTG_PACTUAL_ECOPETROL", 125_000L, now);
+        var transaction = new Transaction("uuid-2", "2", Transaction.TransactionType.CANCELACION,
+            "2", "FPV_BTG_PACTUAL_ECOPETROL", 125_000L, now);
 
         repository.save(transaction);
 
         var captor = ArgumentCaptor.forClass(TransactionItem.class);
         verify(table).putItem(captor.capture());
-        assertThat(captor.getValue().getClientId()).isEqualTo("1");
+        assertThat(captor.getValue().getClientId()).isEqualTo("2");
         assertThat(captor.getValue().getTransactionId()).isEqualTo("uuid-2");
         assertThat(captor.getValue().getType()).isEqualTo("CANCELACION");
         assertThat(captor.getValue().getTimestamp()).isEqualTo(now.toString());
@@ -86,7 +87,7 @@ class DynamoDbTransactionRepositoryTest {
         when(pageIterable.items()).thenReturn(items);
         when(table.query(any(QueryEnhancedRequest.class))).thenReturn(pageIterable);
 
-        List<Transaction> result = repository.findAllSortedByTimestampDesc();
+        List<Transaction> result = repository.findByClientIdSortedByTimestampDesc("1");
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).type()).isEqualTo(Transaction.TransactionType.APERTURA);
@@ -99,7 +100,7 @@ class DynamoDbTransactionRepositoryTest {
         when(pageIterable.items()).thenReturn(empty);
         when(table.query(any(QueryEnhancedRequest.class))).thenReturn(pageIterable);
 
-        List<Transaction> result = repository.findAll();
+        List<Transaction> result = repository.findByClientId("1");
 
         assertThat(result).isEmpty();
     }

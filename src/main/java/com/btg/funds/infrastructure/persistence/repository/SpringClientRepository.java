@@ -6,4 +6,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 @Profile("!aws")
 public interface SpringClientRepository extends MongoRepository<ClientDocument, String> {
+    java.util.Optional<ClientDocument> findByEmail(String email);
 }

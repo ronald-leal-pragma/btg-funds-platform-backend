@@ -2,7 +2,7 @@ package com.btg.funds.infrastructure.persistence.repository;
 
 import com.btg.funds.domain.model.Fund;
 import com.btg.funds.domain.repository.FundRepository;
-import com.btg.funds.infrastructure.persistence.document.FundDocument;
+import com.btg.funds.infrastructure.persistence.mapper.FundDocumentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
@@ -18,30 +18,23 @@ import java.util.Optional;
 public class MongoFundRepository implements FundRepository {
 
     private final SpringFundRepository springRepository;
+    private final FundDocumentMapper mapper;
 
     @Override
     public List<Fund> findAll() {
         log.debug("[REPO] MongoFundRepository.findAll");
-        return springRepository.findAll().stream().map(this::toDomain).toList();
+        return springRepository.findAll().stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public Optional<Fund> findById(String id) {
         log.debug("[REPO] MongoFundRepository.findById: id={}", id);
-        return springRepository.findById(id).map(this::toDomain);
+        return springRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
     public Fund save(Fund fund) {
         log.debug("[REPO] MongoFundRepository.save: id={}", fund.id());
-        return toDomain(springRepository.save(toDocument(fund)));
-    }
-
-    private FundDocument toDocument(Fund fund) {
-        return new FundDocument(fund.id(), fund.name(), fund.minAmount(), fund.category());
-    }
-
-    private Fund toDomain(FundDocument doc) {
-        return new Fund(doc.getId(), doc.getName(), doc.getMinAmount(), doc.getCategory());
+        return mapper.toDomain(springRepository.save(mapper.toDocument(fund)));
     }
 }

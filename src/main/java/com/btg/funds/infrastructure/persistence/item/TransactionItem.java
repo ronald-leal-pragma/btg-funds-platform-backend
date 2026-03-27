@@ -8,12 +8,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
-/**
- * Item DynamoDB para transacciones.
- * PK: clientId ("1" — cliente único)
- * SK: timestamp (ISO-8601) — permite ordenar DESC con scanIndexForward=false
- * transactionId: UUID de la transacción (atributo regular)
- */
+
 @DynamoDbBean
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,13 +19,13 @@ public class TransactionItem {
     private String clientId;
 
     @Getter(onMethod_ = {@DynamoDbSortKey})
-    private String timestamp;   // ISO-8601 string para ordenamiento lexicográfico
+    private String timestamp;
 
     @Getter
-    private String transactionId;   // UUID
+    private String transactionId;
 
     @Getter
-    private String type;            // APERTURA | CANCELACION
+    private String type;
 
     @Getter
     private String fundId;

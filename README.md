@@ -283,3 +283,83 @@ El JAR ejecutable se genera en `target/btg-funds-platform-backend-0.0.1-SNAPSHOT
 java -jar target/btg-funds-platform-backend-0.0.1-SNAPSHOT.jar \
   --MONGODB_URI="mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin"
 ```
+
+---
+
+## Despliegue con AWS CloudFormation
+
+El repositorio incluye la plantilla `lambda-stack.yaml` en la raíz del proyecto para desplegar los recursos (lambdas, roles, etc.). A continuación se describen pasos recomendados para validar, empaquetar y desplegar la plantilla usando la AWS CLI.
+
+Requisitos previos:
+- AWS CLI v2 instalada y configurada (`aws configure`).
+- Credenciales con permisos suficientes para crear stacks y recursos IAM.
+- (Opcional) Un bucket S3 para subir artefactos si la plantilla requiere empaquetado de código.
+
+1) Validar la plantilla localmente
+
+```bash
+aws cloudformation validate-template --template-body file://lambda-stack.yaml
+```
+
+2) Empaquetar (solo si la plantilla referencia artefactos locales - p. ej. código Lambda)
+
+```bash
+# Reemplaza <my-bucket> por un bucket S3 que controles
+aws cloudformation package \
+  --template-file lambda-stack.yaml \
+  --s3-bucket <my-bucket> \
+  --output-template-file packaged.yaml
+```
+
+3) Desplegar el stack
+
+Si no usaste `package` (plantilla ya con referencias remotas):
+
+```bash
+aws cloudformation deploy \
+  --template-file lambda-stack.yaml \
+  --stack-name btg-funds-backend \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+Si usaste `package`, despliega `packaged.yaml` en su lugar:
+
+```bash
+aws cloudformation deploy \
+  --template-file packaged.yaml \
+  --stack-name btg-funds-backend \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+4) Pasar parámetros (si la plantilla define parámetros)
+
+```bash
+aws cloudformation deploy \
+  --template-file packaged.yaml \
+  --stack-name btg-funds-backend \
+  --parameter-overrides ParamKey1=Value1 ParamKey2=Value2 \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
+5) Verificar estado y eventos
+
+```bash
+aws cloudformation describe-stacks --stack-name btg-funds-backend
+aws cloudformation describe-stack-events --stack-name btg-funds-backend
+# Esperar a que termine el create/update
+aws cloudformation wait stack-create-complete --stack-name btg-funds-backend
+```
+
+6) Eliminar el stack
+
+```bash
+aws cloudformation delete-stack --stack-name btg-funds-backend
+```
+
+Notas:
+- Siempre especifica `--capabilities CAPABILITY_NAMED_IAM` si la plantilla crea o modifica roles/ políticas IAM.
+- Si la plantilla necesita artefactos (ZIPs) que no están ya en S3, usa `package` antes de `deploy`.
+- Revisa los `Outputs` del stack para obtener ARNs o endpoints creados.
+

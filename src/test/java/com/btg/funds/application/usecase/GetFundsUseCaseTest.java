@@ -38,7 +38,7 @@ class GetFundsUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        client = new Client("1", 500_000L, "email", "user@test.com", List.of("1", "3"));
+        client = new Client("1", 500_000L, "email", "user@test.com", List.of("1", "3"), "user@test.com", "pass123");
         funds = List.of(
                 new Fund("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, "FPV"),
                 new Fund("2", "FPV_BTG_PACTUAL_ECOPETROL", 125_000L, "FPV"),
@@ -55,7 +55,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(funds);
 
-        List<FundWithStatusResponse> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute("1");
 
         assertThat(result).hasSize(3);
     }
@@ -65,7 +65,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(funds);
 
-        List<FundWithStatusResponse> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute("1");
 
         assertThat(result.get(0).subscribed()).isTrue();
         assertThat(result.get(1).subscribed()).isFalse();
@@ -77,7 +77,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(List.of());
 
-        List<FundWithStatusResponse> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute("1");
 
         assertThat(result).isEmpty();
     }
@@ -86,9 +86,9 @@ class GetFundsUseCaseTest {
     void should_throw_when_client_not_found() {
         when(clientRepository.findById("1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute())
-                .isInstanceOf(FundDomainException.class)
-                .hasMessage("Cliente no encontrado");
+        assertThatThrownBy(() -> useCase.execute("1"))
+            .isInstanceOf(FundDomainException.class)
+            .hasMessageContaining("Cliente no encontrado");
     }
 
     @Test
@@ -96,7 +96,7 @@ class GetFundsUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(client));
         when(fundRepository.findAll()).thenReturn(funds);
 
-        List<FundWithStatusResponse> result = useCase.execute();
+        List<FundWithStatusResponse> result = useCase.execute("1");
 
         assertThat(result.get(0).fund().name()).isEqualTo("FPV_BTG_PACTUAL_RECAUDADORA");
         assertThat(result.get(0).fund().minAmount()).isEqualTo(75_000L);

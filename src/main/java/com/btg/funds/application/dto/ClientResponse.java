@@ -7,5 +7,6 @@ public record ClientResponse(
         long balance,
         String notificationPreference,
         String contactInfo,
-        List<String> activeFundIds
+        List<String> activeFundIds,
+        String email
 ) {}

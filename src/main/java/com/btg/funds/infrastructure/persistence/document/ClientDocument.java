@@ -30,4 +30,8 @@ public class ClientDocument {
 
     @Field("active_fund_ids")
     private List<String> activeFundIds;
+
+    private String email;
+
+    private String password;
 }

@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,11 +38,11 @@ class FundControllerTest {
     @Test
     void should_list_funds_with_200() throws Exception {
         FundResponse fundResponse = new FundResponse("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, "FPV");
-        when(getFundsUseCase.execute()).thenReturn(List.of(
+        when(getFundsUseCase.execute(anyString())).thenReturn(List.of(
                 new FundWithStatusResponse(fundResponse, false)
         ));
 
-        mockMvc.perform(get("/api/v1/funds"))
+        mockMvc.perform(get("/api/v1/funds").param("clientId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].fund.id").value("1"))
                 .andExpect(jsonPath("$[0].fund.name").value("FPV_BTG_PACTUAL_RECAUDADORA"))
@@ -50,9 +51,9 @@ class FundControllerTest {
 
     @Test
     void should_return_empty_list_when_no_funds() throws Exception {
-        when(getFundsUseCase.execute()).thenReturn(List.of());
+        when(getFundsUseCase.execute(anyString())).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/funds"))
+        mockMvc.perform(get("/api/v1/funds").param("clientId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -60,11 +61,11 @@ class FundControllerTest {
 
     @Test
     void should_subscribe_to_fund_with_200() throws Exception {
-        Transaction tx = new Transaction("uuid-1", Transaction.TransactionType.APERTURA,
+        Transaction tx = new Transaction("uuid-1", "1", Transaction.TransactionType.APERTURA,
                 "1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, Instant.parse("2024-01-01T00:00:00Z"));
-        when(subscribeFundUseCase.execute("1")).thenReturn(tx);
+        when(subscribeFundUseCase.execute(anyString(), anyString())).thenReturn(tx);
 
-        mockMvc.perform(post("/api/v1/funds/1/subscribe"))
+        mockMvc.perform(post("/api/v1/funds/1/subscribe").param("clientId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("uuid-1"))
                 .andExpect(jsonPath("$.type").value("APERTURA"))
@@ -73,31 +74,31 @@ class FundControllerTest {
 
     @Test
     void should_return_400_when_subscribe_throws_domain_exception() throws Exception {
-        when(subscribeFundUseCase.execute("1"))
+        when(subscribeFundUseCase.execute(anyString(), anyString()))
                 .thenThrow(new FundDomainException("No tiene saldo disponible para vincularse al fondo FPV_BTG_PACTUAL_RECAUDADORA"));
 
-        mockMvc.perform(post("/api/v1/funds/1/subscribe"))
+        mockMvc.perform(post("/api/v1/funds/1/subscribe").param("clientId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("No tiene saldo disponible para vincularse al fondo FPV_BTG_PACTUAL_RECAUDADORA"));
     }
 
     @Test
     void should_cancel_fund_with_200() throws Exception {
-        Transaction tx = new Transaction("uuid-2", Transaction.TransactionType.CANCELACION,
+        Transaction tx = new Transaction("uuid-2", "1", Transaction.TransactionType.CANCELACION,
                 "1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, Instant.parse("2024-01-01T00:00:00Z"));
-        when(cancelFundUseCase.execute("1")).thenReturn(tx);
+        when(cancelFundUseCase.execute(anyString(), anyString())).thenReturn(tx);
 
-        mockMvc.perform(delete("/api/v1/funds/1/cancel"))
+        mockMvc.perform(delete("/api/v1/funds/1/cancel").param("clientId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("CANCELACION"));
     }
 
     @Test
     void should_return_400_when_cancel_throws_domain_exception() throws Exception {
-        when(cancelFundUseCase.execute("1"))
+        when(cancelFundUseCase.execute(anyString(), anyString()))
                 .thenThrow(new FundDomainException("No está suscrito al fondo FPV_BTG_PACTUAL_RECAUDADORA"));
 
-        mockMvc.perform(delete("/api/v1/funds/1/cancel"))
+        mockMvc.perform(delete("/api/v1/funds/1/cancel").param("clientId", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("No está suscrito al fondo FPV_BTG_PACTUAL_RECAUDADORA"));
     }

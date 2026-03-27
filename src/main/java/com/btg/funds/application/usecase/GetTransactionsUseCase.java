@@ -13,14 +13,10 @@ public class GetTransactionsUseCase implements com.btg.funds.application.port.in
 
     private final TransactionRepository transactionRepository;
 
-    public List<Transaction> execute() {
-        return transactionRepository.findAll();
-    }
-
-    public List<Transaction> execute(String sort) {
+    public List<Transaction> execute(String clientId, String sort) {
         if (sort == null || "desc".equalsIgnoreCase(sort)) {
-            return transactionRepository.findAllSortedByTimestampDesc();
+            return transactionRepository.findByClientIdSortedByTimestampDesc(clientId);
         }
-        return transactionRepository.findAll();
+        return transactionRepository.findByClientId(clientId);
     }
 }

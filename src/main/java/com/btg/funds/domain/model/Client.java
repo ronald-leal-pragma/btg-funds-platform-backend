@@ -7,30 +7,32 @@ public record Client(
         long balance,
         String notificationPreference,
         String contactInfo,
-        List<String> activeFundIds
+        List<String> activeFundIds,
+        String email,
+        String password
 ) {
     public boolean hasEnoughBalance(long amount) {
         return this.balance >= amount;
     }
 
     public Client deductBalance(long amount) {
-        return new Client(id, balance - amount, notificationPreference, contactInfo, activeFundIds);
+        return new Client(id, balance - amount, notificationPreference, contactInfo, activeFundIds, email, password);
     }
 
     public Client refundBalance(long amount) {
-        return new Client(id, balance + amount, notificationPreference, contactInfo, activeFundIds);
+        return new Client(id, balance + amount, notificationPreference, contactInfo, activeFundIds, email, password);
     }
 
     public Client addFund(String fundId) {
         var updated = new java.util.ArrayList<>(activeFundIds);
         updated.add(fundId);
-        return new Client(id, balance, notificationPreference, contactInfo, List.copyOf(updated));
+        return new Client(id, balance, notificationPreference, contactInfo, List.copyOf(updated), email, password);
     }
 
     public Client removeFund(String fundId) {
         var updated = new java.util.ArrayList<>(activeFundIds);
         updated.remove(fundId);
-        return new Client(id, balance, notificationPreference, contactInfo, List.copyOf(updated));
+        return new Client(id, balance, notificationPreference, contactInfo, List.copyOf(updated), email, password);
     }
 
     public boolean isSubscribedTo(String fundId) {

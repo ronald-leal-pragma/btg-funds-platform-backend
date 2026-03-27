@@ -2,6 +2,7 @@ package com.btg.funds.infrastructure.persistence;
 
 import com.btg.funds.domain.model.Fund;
 import com.btg.funds.infrastructure.persistence.item.FundItem;
+import com.btg.funds.infrastructure.persistence.mapper.FundItemMapper;
 import com.btg.funds.infrastructure.persistence.repository.DynamoDbFundRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class DynamoDbFundRepositoryTest {
     @BeforeEach
     void setUp() {
         when(enhancedClient.table(eq("Funds"), any(TableSchema.class))).thenReturn(table);
-        repository = new DynamoDbFundRepository(enhancedClient, "Funds");
+        repository = new DynamoDbFundRepository(enhancedClient, "Funds", new FundItemMapper());
     }
 
     @Test

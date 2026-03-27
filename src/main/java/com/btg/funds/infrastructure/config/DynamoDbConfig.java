@@ -10,11 +10,6 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.net.URI;
 
-/**
- * Configuración de clientes AWS DynamoDB SDK v2.
- * Si aws.dynamodb.endpoint está definido (local) se usa el endpoint override.
- * En Lambda (AWS) no hay endpoint override — usa la región por defecto.
- */
 @Profile("aws")
 @Configuration
 public class DynamoDbConfig {

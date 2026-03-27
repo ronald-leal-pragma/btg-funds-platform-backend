@@ -5,5 +5,5 @@ import com.btg.funds.application.dto.FundWithStatusResponse;
 import java.util.List;
 
 public interface GetFundsPort {
-    List<FundWithStatusResponse> execute();
+    List<FundWithStatusResponse> execute(String clientId);
 }

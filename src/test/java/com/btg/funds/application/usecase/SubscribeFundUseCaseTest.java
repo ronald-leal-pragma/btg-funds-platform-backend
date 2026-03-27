@@ -41,8 +41,8 @@ class SubscribeFundUseCaseTest {
     @BeforeEach
     void setUp() {
         fund1 = new Fund("1", "FPV_BTG_PACTUAL_RECAUDADORA", 75_000L, "FPV");
-        clientWithNoFunds = new Client("1", 500_000L, "email", "user@test.com", List.of());
-        clientSubscribedToFund1 = new Client("1", 425_000L, "email", "user@test.com", List.of("1"));
+        clientWithNoFunds = new Client("1", 500_000L, "email", "user@test.com", List.of(), "user@test.com", "pass123");
+        clientSubscribedToFund1 = new Client("1", 425_000L, "email", "user@test.com", List.of("1"), "user@test.com", "pass123");
     }
 
     @Test
@@ -52,7 +52,7 @@ class SubscribeFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Transaction result = useCase.execute("1");
+        Transaction result = useCase.execute("1", "1");
 
         assertThat(result).isNotNull();
         assertThat(result.type()).isEqualTo(Transaction.TransactionType.APERTURA);
@@ -69,7 +69,7 @@ class SubscribeFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.execute("1");
+        useCase.execute("1", "1");
 
         ArgumentCaptor<Client> captor = ArgumentCaptor.forClass(Client.class);
         verify(clientRepository).save(captor.capture());
@@ -84,7 +84,7 @@ class SubscribeFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.execute("1");
+        useCase.execute("1", "1");
 
         verify(notificationPort).notifySubscription(any(Client.class), eq(fund1));
     }
@@ -93,9 +93,9 @@ class SubscribeFundUseCaseTest {
     void should_throw_when_client_not_found() {
         when(clientRepository.findById("1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute("1"))
-                .isInstanceOf(FundDomainException.class)
-                .hasMessage("Cliente no encontrado");
+        assertThatThrownBy(() -> useCase.execute("1", "1"))
+            .isInstanceOf(FundDomainException.class)
+            .hasMessageContaining("Cliente no encontrado");
     }
 
     @Test
@@ -103,7 +103,7 @@ class SubscribeFundUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(clientWithNoFunds));
         when(fundRepository.findById("99")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute("99"))
+        assertThatThrownBy(() -> useCase.execute("1", "99"))
                 .isInstanceOf(FundDomainException.class)
                 .hasMessageContaining("Fondo no encontrado");
     }
@@ -113,18 +113,18 @@ class SubscribeFundUseCaseTest {
         when(clientRepository.findById("1")).thenReturn(Optional.of(clientSubscribedToFund1));
         when(fundRepository.findById("1")).thenReturn(Optional.of(fund1));
 
-        assertThatThrownBy(() -> useCase.execute("1"))
+        assertThatThrownBy(() -> useCase.execute("1", "1"))
                 .isInstanceOf(FundDomainException.class)
                 .hasMessageContaining("Ya está suscrito al fondo");
     }
 
     @Test
     void should_throw_when_balance_insufficient() {
-        Client poorClient = new Client("1", 10_000L, "email", "user@test.com", List.of());
+        Client poorClient = new Client("1", 10_000L, "email", "user@test.com", List.of(), "user@test.com", "pass123");
         when(clientRepository.findById("1")).thenReturn(Optional.of(poorClient));
         when(fundRepository.findById("1")).thenReturn(Optional.of(fund1));
 
-        assertThatThrownBy(() -> useCase.execute("1"))
+        assertThatThrownBy(() -> useCase.execute("1", "1"))
                 .isInstanceOf(FundDomainException.class)
                 .hasMessage("No tiene saldo disponible para vincularse al fondo FPV_BTG_PACTUAL_RECAUDADORA");
     }
@@ -136,7 +136,7 @@ class SubscribeFundUseCaseTest {
         when(clientRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.execute("1");
+        useCase.execute("1", "1");
 
         verify(transactionRepository).save(any(Transaction.class));
     }

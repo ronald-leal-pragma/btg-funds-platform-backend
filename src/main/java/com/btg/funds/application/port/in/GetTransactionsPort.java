@@ -5,5 +5,5 @@ import com.btg.funds.domain.model.Transaction;
 import java.util.List;
 
 public interface GetTransactionsPort {
-    List<Transaction> execute();
+    List<Transaction> execute(String clientId, String sort);
 }

@@ -4,7 +4,7 @@ spring:
   # MongoDB activo por defecto (perfil local). Se desactiva con perfil "aws".
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/btgfunds}
+      uri: ${MONGODB_URI:mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin}
   autoconfigure:
     exclude: []
 
@@ -23,7 +23,6 @@ springdoc:
 aws:
   region: ${AWS_REGION:us-east-1}
   dynamodb:
-    # Sin default: vacío en Lambda (usa endpoint AWS real) o se fija con DYNAMODB_ENDPOINT en docker-compose
     endpoint: ${DYNAMODB_ENDPOINT:}
     clients-table: ${DYNAMODB_CLIENTS_TABLE:Clients}
     funds-table: ${DYNAMODB_FUNDS_TABLE:Funds}
