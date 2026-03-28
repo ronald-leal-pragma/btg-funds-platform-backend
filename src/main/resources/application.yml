@@ -1,7 +1,6 @@
 spring:
   application:
     name: btg-funds-platform-backend
-  # MongoDB activo por defecto (perfil local). Se desactiva con perfil "aws".
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://admin:password123@localhost:27017/btgfunds_db?authSource=admin}
@@ -35,7 +34,6 @@ logging:
     com.btg.funds: DEBUG
 
 ---
-# Perfil local (!aws): DynamoDB Local en localhost:8000
 spring:
   config:
     activate:
@@ -45,7 +43,6 @@ aws:
     endpoint: ${DYNAMODB_ENDPOINT:http://localhost:8000}
 
 ---
-# Perfil AWS: desactiva auto-configuración de MongoDB
 spring:
   config:
     activate:

@@ -35,7 +35,6 @@ public class DataSeeder implements CommandLineRunner {
         var existing = clientRepository.findById("1");
 
         if (existing.isPresent()) {
-            // Migrar cliente existente si no tiene email/password
             var c = existing.get();
             if (c.email() == null || c.email().isBlank()) {
                 var migrated = new Client(

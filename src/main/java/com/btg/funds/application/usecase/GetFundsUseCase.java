@@ -35,9 +35,6 @@ public class GetFundsUseCase implements com.btg.funds.application.port.in.GetFun
                 .toList();
     }
 
-    /**
-     * Lista todos los fondos sin necesidad de un cliente — marcado como no suscrito.
-     */
     public List<FundWithStatusResponse> execute() {
         log.info("[USECASE] GetFunds - Solicitud listado de todos los fondos (sin cliente)");
         return fundRepository.findAll().stream()

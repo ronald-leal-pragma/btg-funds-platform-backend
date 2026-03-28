@@ -17,10 +17,6 @@ import software.amazon.awssdk.services.ses.model.SendEmailRequest;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 
-/**
- * Adaptador de notificaciones usando AWS SES (email) y SNS (SMS).
- * Solo activo con el perfil "aws" — en local usa LogNotificationAdapter.
- */
 @Slf4j
 @Component
 @Profile("aws")
@@ -42,8 +38,6 @@ public class AwsNotificationAdapter implements NotificationPort {
         }
     }
 
-    // ---------------------------------------------------------
-
     private void sendEmail(Client client, Fund fund) {
         try {
             var request = SendEmailRequest.builder()
@@ -58,7 +52,7 @@ public class AwsNotificationAdapter implements NotificationPort {
                                     .build())
                             .body(Body.builder()
                                     .text(Content.builder()
-                                            .data(buildEmailBody(client, fund))
+                                            .data(buildEmailBody(fund))
                                             .charset("UTF-8")
                                             .build())
                                     .build())
@@ -88,20 +82,20 @@ public class AwsNotificationAdapter implements NotificationPort {
         }
     }
 
-    private String buildEmailBody(Client client, Fund fund) {
+    private String buildEmailBody(Fund fund) {
         return """
                 Estimado cliente,
-
+                
                 Te confirmamos que te has suscrito exitosamente al siguiente fondo de inversión:
-
+                
                   Fondo    : %s
                   Categoría: %s
                   Monto    : COP $%,d
-
+                
                 Puedes consultar tu historial de transacciones en la plataforma BTG Pactual.
-
+                
                 Gracias por confiar en nosotros.
-
+                
                 BTG Pactual — Gestión de Fondos
                 """.formatted(fund.name(), fund.category(), fund.minAmount());
     }
